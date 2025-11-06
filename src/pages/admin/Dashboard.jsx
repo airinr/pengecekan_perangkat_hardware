@@ -1,310 +1,154 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable no-undef */
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { Table } from "../../components/DefaultTable";
+import { Link } from "react-router-dom";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 const NGROK_HEADERS = { "ngrok-skip-browser-warning": "true" };
 
 const LABS = [
-  { id: "LAB00001", label: "LAB-609" },
-  { id: "LAB00002", label: "LAB-610" },
+  { id: "LAB00001", label: "LAB-609", href: "/admin/lab609" },
+  { id: "LAB00002", label: "LAB-610", href: "/admin/lab610" },
 ];
 
 export default function DashboardAdmin() {
-  const columns = useMemo(
-    () => [
-      { key: "no", header: "#" },
-      { key: "tanggal", header: "Tanggal" },
-      { key: "lab", header: "Lab" },
-      { key: "asisten", header: "Asisten" },
-      {
-        key: "status",
-        header: "Status",
-        render: (v) => (
-          <span
-            className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset
-            ${
-              v === "Selesai"
-                ? "bg-green-500/15 text-green-300 ring-green-500/30"
-                : v === "Proses"
-                ? "bg-yellow-500/15 text-yellow-300 ring-yellow-500/30"
-                : "bg-slate-500/15 text-slate-300 ring-slate-500/30"
-            }`}
-          >
-            {v}
-          </span>
-        ),
-      },
-      {
-        key: "kerusakan",
-        header: "Kerusakan",
-        render: (v) => {
-          const items = String(v)
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean);
-          return (
-            <ul className="list-disc pl-5 space-y-1 max-w-[28rem] whitespace-pre-line break-words leading-relaxed">
-              {items.map((it, i) => (
-                <li key={i}>{it}</li>
-              ))}
-            </ul>
-          );
-        },
-      },
-      { key: "jumlah_rusak", header: "Jumlah Rusak", align: "right" },
-      {
-        key: "aksi",
-        header: "",
-        render: (_, row) => (
-          <div className="flex justify-end">
-            <a
-              href={`/reports/${row.id}`}
-              className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-slate-700 hover:bg-slate-600"
-            >
-              Lihat
-            </a>
-          </div>
-        ),
-      },
-    ],
-    []
-  );
-
-  const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [barangLoading, setBarangLoading] = useState(false);
   const [err, setErr] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
 
-  // --- state untuk modal Tambah Data
-  const [showAdd, setShowAdd] = useState(false);
-  const [namaBarang, setNamaBarang] = useState("");
-  const [adding, setAdding] = useState(false);
-  const [addErr, setAddErr] = useState("");
+  const showSuccess = (msg = "Berhasil") => {
+    setSuccessMsg(msg);
+    window.clearTimeout(showSuccess._t);
+    showSuccess._t = window.setTimeout(() => setSuccessMsg(""), 2500);
+  };
 
   const fetchDamaged = useCallback(async () => {
-    setLoading(true);
-    setErr("");
     try {
-      const token = localStorage.getItem("token");
-      const results = await Promise.all(
-        LABS.map(async (lab) => {
-          const res = await fetch(
-            `${API_BASE}/datalab/getdatalab/${encodeURIComponent(lab.id)}`,
-            {
-              headers: {
-                Accept: "application/json",
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                ...NGROK_HEADERS,
-              },
-            }
-          );
-          if (!res.ok) {
-            const msg =
-              (await res.json().catch(() => ({})))?.message ||
-              `Gagal memuat data ${lab.label}`;
-            throw new Error(msg);
-          }
-          const payload = await res.json();
-          const list = Array.isArray(payload?.data) ? payload.data : [];
-          const damaged = list.filter((it) => Number(it?.jumlahRusak ?? 0) > 0);
-
-          return damaged.map((it) => {
-            const idBarang = it?.idBarang ?? "";
-            const nama =
-              it?.barangModel?.namaBarang || it?.namaBarang || idBarang || "-";
-            const jumlahRusak = Number(it?.jumlahRusak ?? 0);
-
-            return {
-              id: `${lab.id}-${idBarang}`,
-              tanggal: "–",
-              lab: lab.label,
-              asisten: "–",
-              status: "Proses",
-              kerusakan: `${nama} rusak (${jumlahRusak})`,
-              jumlah_rusak: jumlahRusak,
-            };
-          });
-        })
-      );
-
-      const flat = results.flat();
-      const withNo = flat.map((row, idx) => ({ no: idx + 1, ...row }));
-      setData(withNo);
+      setLoading(true);
+      // panggil API lain kalau perlu
     } catch (e) {
-      console.error(e);
-      setErr(e?.message || "Gagal memuat data rusak.");
+      setErr(e?.message || "Gagal memuat data.");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    (async () => {
-      await fetchDamaged();
-    })();
+    fetchDamaged();
   }, [fetchDamaged]);
 
-  // --- submit tambah data (nama barang saja)
-  const onSubmitAdd = async (e) => {
-    e.preventDefault();
-    const nama = namaBarang.trim();
-    if (!nama) {
-      setAddErr("Nama barang wajib diisi.");
-      return;
-    }
-    setAddErr("");
-    setAdding(true);
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE}/datalab/addDataLab`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          ...NGROK_HEADERS,
-        },
-        body: JSON.stringify({ namaBarang: nama }),
-      });
-      if (!res.ok) {
-        const msg =
-          (await res.json().catch(() => ({})))?.message ||
-          "Gagal menambahkan data.";
-        throw new Error(msg);
-      }
-      setShowAdd(false);
-      setNamaBarang("");
-      await fetchDamaged(); // refresh
-    } catch (e) {
-      console.error(e);
-      setAddErr(e?.message || "Gagal menambahkan data.");
-    } finally {
-      setAdding(false);
-    }
-  };
+  const BG_URL =
+    "https://i.pinimg.com/736x/00/00/00/000000000000000000000000000000.jpg";
 
   return (
-    <div className="container mx-auto px-4 py-8 lg:ml-56">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Dashboard Admin</h1>
-          <p>Selamat datang di dashboard admin.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={fetchDamaged}
-            className="rounded-lg bg-slate-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-600 disabled:opacity-60"
-            disabled={loading}
-          >
-            {loading ? "Memuat…" : "Refresh"}
-          </button>
-        </div>
+    <div className="relative min-h-screen w-screen overflow-hidden">
+      {/* Background */}
+      <div className="fixed inset-0 -z-10 bg-black">
+        <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" />
       </div>
 
-      {/* Tombol LAB */}
-      <div className="flex flex-wrap gap-3 pt-2">
-        <a
-          href="/admin/lab609"
-          role="button"
-          className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70"
-        >
-          LAB-609
-        </a>
-        <a
-          href="/admin/lab610"
-          role="button"
-          className="inline-flex items-center justify-center rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-100 hover:bg-white/10 active:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/40"
-        >
-          LAB-610
-        </a>
-      </div>
-
-      {/* ⬇️ Tambah Data dipindah ke bawah tombol LAB */}
-      <div className="mt-4">
-        <button
-          type="button"
-          onClick={() => {
-            setNamaBarang("");
-            setAddErr("");
-            setShowAdd(true);
-          }}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
-        >
-          + Tambah Data
-        </button>
-      </div>
-
-      {/* Info status fetch */}
-      <div className="mt-4 text-sm">
-        {loading && <span className="text-slate-400">Memuat…</span>}
-        {err && <span className="text-red-300 ml-2">Error: {err}</span>}
-      </div>
-
-      {/* (Opsional) tampilkan tabel bila diperlukan */}
-      {/* <Table columns={columns} data={data} /> */}
-
-      {/* Modal Tambah Data */}
-      {showAdd && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/60"
-            onClick={() => setShowAdd(false)}
-          />
-          <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-slate-900 p-5 shadow-xl">
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-white">Tambah Data</h3>
-              <button
-                onClick={() => setShowAdd(false)}
-                className="rounded-lg p-1 text-slate-300 hover:bg-white/10"
-                aria-label="Tutup"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={onSubmitAdd} className="space-y-4">
-              <div>
-                <label className="mb-1 block text-sm text-slate-300">
-                  Nama Barang
-                </label>
-                <input
-                  value={namaBarang}
-                  onChange={(e) => setNamaBarang(e.target.value)}
-                  placeholder="Contoh: Gunting"
-                  className="w-full rounded-lg border border-white/15 bg-slate-950 px-3 py-2 text-sm text-slate-100"
-                  autoFocus
-                />
-                {addErr && (
-                  <div className="mt-1 text-xs text-red-300">{addErr}</div>
-                )}
-              </div>
-
-              <div className="mt-5 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAdd(false)}
-                  className="rounded-xl border border-white/15 px-4 py-2 text-sm text-slate-200 hover:bg-white/5"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={adding}
-                  className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-60"
-                >
-                  {adding ? "Menyimpan..." : "Simpan"}
-                </button>
-              </div>
-            </form>
-
-            <p className="mt-3 text-[11px] text-slate-400">
-              Data otomatis masuk ke 2 lab(LAB609 dan LAB610).
-            </p>
+      {/* Main */}
+      <div className="flex flex-col items-center justify-center min-h-screen px-4 lg:ml-56">
+        {/* Toast */}
+        {Boolean(successMsg) && (
+          <div className="fixed right-4 top-4 z-[9999] rounded-xl border border-emerald-400/30 bg-emerald-500/15 px-4 py-2 text-sm text-emerald-200 shadow-lg backdrop-blur">
+            {successMsg}
           </div>
+        )}
+
+        {/* Hero */}
+        <div className="relative w-full max-w-3xl text-center mb-10">
+          {/* Refresh button (BLUE) */}
+          <div className="absolute right-0 top-0">
+            <button
+              type="button"
+              onClick={() => {
+                fetchDamaged();
+                showSuccess("Disegarkan");
+              }}
+              className="rounded-lg border border-blue-400/30 bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/60 disabled:opacity-60"
+              disabled={loading || barangLoading}
+            >
+              {loading || barangLoading ? "Memuat…" : "Refresh"}
+            </button>
+          </div>
+
+          <h1 className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg">
+            Dashboard Admin
+          </h1>
+          <p className="text-slate-200 mt-3 text-lg">
+            Selamat datang di dashboard admin.
+          </p>
+          <p className="text-slate-400">
+            Pilih salah satu laboratorium untuk melihat detail.
+          </p>
         </div>
-      )}
+
+        {(loading || err) && (
+          <div className="mb-4 text-sm text-slate-300">
+            {loading && "Memuat…"}
+            {err && <span className="text-red-300 ml-2">Error: {err}</span>}
+          </div>
+        )}
+
+        {/* Quick nav cards (BLUE) */}
+        <div className="grid gap-4 md:grid-cols-3 w-full max-w-4xl">
+          {LABS.map((lab) => (
+            <a
+              key={lab.id}
+              href={lab.href}
+              className="group relative overflow-hidden rounded-2xl border border-blue-400/20 bg-blue-500/[0.08] p-5 text-left transition hover:bg-blue-500/[0.16] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/40"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs uppercase tracking-wider text-blue-300/90">
+                    Laboratorium
+                  </div>
+                  <div className="mt-1 text-lg font-semibold text-white">
+                    {lab.label}
+                  </div>
+                </div>
+                <div
+                  aria-hidden
+                  className="rounded-xl border border-blue-300/30 bg-blue-400/20 px-3 py-1 text-xs text-blue-50 transition group-hover:translate-x-0.5"
+                >
+                  Buka →
+                </div>
+              </div>
+              <div className="mt-3 text-sm text-blue-100/80">
+                Lihat perangkat, stok, dan aktivitas lab {lab.label}.
+              </div>
+            </a>
+          ))}
+
+          {/* Kelola Barang card (BLUE) */}
+          <Link
+            to="/admin/barang"
+            className="group relative overflow-hidden rounded-2xl border border-blue-400/20 bg-blue-500/[0.10] p-5 transition hover:bg-blue-500/[0.18] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/40"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs uppercase tracking-wider text-blue-300/90">
+                  Master
+                </div>
+                <div className="mt-1 text-lg font-semibold text-white">
+                  Kelola Barang
+                </div>
+              </div>
+              <div
+                aria-hidden
+                className="rounded-xl border border-blue-300/30 bg-blue-400/20 px-3 py-1 text-xs text-blue-50 transition group-hover:translate-x-0.5"
+              >
+                Buka →
+              </div>
+            </div>
+            <div className="mt-3 text-sm text-blue-100/85">
+              Tambah atau hapus item pada master daftar barang.
+            </div>
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

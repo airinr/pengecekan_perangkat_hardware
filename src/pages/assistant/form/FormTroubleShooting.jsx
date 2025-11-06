@@ -8,7 +8,7 @@ const DEFAULT_ITEMS = ["Flashdisk", "Komputer"];
 const API_BASE = import.meta.env.VITE_API_URL || "";
 const NGROK_HEADERS = { "ngrok-skip-browser-warning": "true" };
 
-// helper: ambil nama user dari localStorage
+// helper: nama user dari localStorage
 const getCurrentUserName = () => {
   try {
     const u = JSON.parse(localStorage.getItem("user") || "{}");
@@ -18,27 +18,57 @@ const getCurrentUserName = () => {
   }
 };
 
+// helper tanggal (YYYY-MM-DD)
+const getTodayDate = () => {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+// (opsional) jam sekarang HH:MM
+const getNowTime = () => {
+  const d = new Date();
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return `${hh}:${mi}`;
+};
+
+const LAB_NAMES = { LAB00001: "Lab 609", LAB00002: "Lab 610" };
+const PRAKTIKUM_NAMES = {
+  PRTK00001: "Merakit Komputer",
+  PRTK00002: "BIOS dan Partisi",
+  PRTK00003: "Jaringan Komputer",
+  PRTK00004: "Troubleshooting",
+};
+
 export default function FormTroubleShooting() {
-  // Ambil dari query: ?kode=PRTKxxxxx&lab=LABxxxxx
   const [searchParams] = useSearchParams();
   const labCode = searchParams.get("lab") || "";
   const kodePraktikum = searchParams.get("kode") || "";
 
+  // ===== Header (pakai ID untuk dikirim ke backend) =====
   const [header, setHeader] = useState({
-    tanggal: "",
-    dosen: "",
-    kelas: "",
-    asisten: getCurrentUserName(), // <-- auto dari akun login
-    waktuMulai: "",
+    tanggal: getTodayDate(),
+    idDosen: "", // ✅ kirim idDosen (mis. DSN00002)
+    idKelas: "", // ✅ kirim idKelas (mis. KLS00003)
+    asisten: getCurrentUserName(),
+    waktuMulai: "", // UI HH:MM; saat submit diubah ke HH:MM:SS
     waktuSelesai: "",
   });
 
+  // filter kelas-by-dosen
+  const [tahunAjar, setTahunAjar] = useState("2025");
+  const [semester, setSemester] = useState("Ganjil"); // Ganjil | Genap
+
+  // ===== Tabel kelengkapan =====
   const [rows, setRows] = useState(
     DEFAULT_ITEMS.map((name, i) => ({
       id: i + 1,
       name,
-      idBarang: "", // diisi dari datalab
-      awal: "", // jumlahNormal dari datalab
+      idBarang: "",
+      awal: "",
       akhir: "",
       kerusakan: "",
     }))
@@ -46,19 +76,18 @@ export default function FormTroubleShooting() {
 
   const [tindakLanjut, setTindakLanjut] = useState("");
 
-  // Foto (opsional)
-  const [ttdFile, setTtdFile] = useState(null);
-  const [ttdPreview, setTtdPreview] = useState("");
-
-  const onPickTtd = (e) => {
+  // ===== Foto praktikum =====
+  const [fotoFile, setFotoFile] = useState(null);
+  const [fotoPreview, setFotoPreview] = useState("");
+  const onPickFoto = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setTtdFile(file);
-    setTtdPreview(URL.createObjectURL(file));
+    setFotoFile(file);
+    setFotoPreview(URL.createObjectURL(file));
   };
-  const clearTtd = () => {
-    setTtdFile(null);
-    setTtdPreview("");
+  const clearFoto = () => {
+    setFotoFile(null);
+    setFotoPreview("");
   };
 
   const handleRowChange = (id, key, value) => {
@@ -67,7 +96,9 @@ export default function FormTroubleShooting() {
     );
   };
 
-  // ===== Prefill dari /datalab/getdatalab/{lab} =====
+  // =========================
+  // Prefill dari /datalab/getdatalab/{lab}
+  // =========================
   const [loadingPrefill, setLoadingPrefill] = useState(false);
   const [prefillError, setPrefillError] = useState("");
 
@@ -94,24 +125,19 @@ export default function FormTroubleShooting() {
       const payload = await res.json();
       const list = Array.isArray(payload?.data) ? payload.data : [];
 
-      // Peta namaBarang(lowercase) -> { idBarang, awal } | awal = jumlahNormal
       const nameToInfo = new Map();
       list.forEach((it) => {
         const nama = (it?.barangModel?.namaBarang || "").trim().toLowerCase();
         const idBarang = (it?.idBarang || "").trim();
         const jn = Number(it?.jumlahNormal ?? 0);
-        if (nama && idBarang)
-          nameToInfo.set(nama, {
-            idBarang,
-            awal: Number.isFinite(jn) ? jn : 0,
-          });
+        if (nama && idBarang) nameToInfo.set(nama, { idBarang, jn });
       });
 
       setRows((prev) =>
         prev.map((r) => {
           const info = nameToInfo.get(r.name.trim().toLowerCase());
           if (!info) return r;
-          return { ...r, idBarang: info.idBarang, awal: info.awal };
+          return { ...r, idBarang: info.idBarang, awal: info.jn };
         })
       );
     } catch (err) {
@@ -126,7 +152,155 @@ export default function FormTroubleShooting() {
     fetchDatalab();
   }, [fetchDatalab]);
 
-  // Sinkronkan nama asisten dari localStorage saat mount jika state kosong
+  // =========================
+  // Dosen (GET /dosen) -> {id,label}
+  // =========================
+  const [dosenOptions, setDosenOptions] = useState([]); // {id,label}[]
+  const [dosenLoading, setDosenLoading] = useState(false);
+  const [dosenErr, setDosenErr] = useState("");
+
+  const parseDosen = (d) => {
+    const id = d?.idDosen || d?.kodeDosen || d?.id || d?.kode || "";
+    const label = d?.namaDosen || d?.nama || d?.name || d?.fullName || "";
+    return { id: String(id || "").trim(), label: String(label || "").trim() };
+  };
+
+  const fetchDosen = useCallback(async () => {
+    setDosenLoading(true);
+    setDosenErr("");
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/dosen`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...NGROK_HEADERS,
+        },
+      });
+      if (!res.ok) {
+        const msg =
+          (await res.json().catch(() => ({})))?.message ||
+          "Gagal memuat dosen.";
+        throw new Error(msg);
+      }
+      const payload = await res.json();
+      const list = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload?.dosen)
+        ? payload.dosen
+        : [];
+      const parsed = list.map(parseDosen).filter((x) => x.id && x.label);
+
+      // unique by id + sort by label
+      const uniqMap = new Map();
+      parsed.forEach((x) => {
+        if (!uniqMap.has(x.id)) uniqMap.set(x.id, x);
+      });
+      const uniq = Array.from(uniqMap.values()).sort((a, b) =>
+        a.label.localeCompare(b.label)
+      );
+      setDosenOptions(uniq);
+    } catch (e) {
+      console.error(e);
+      setDosenErr(e?.message || "Gagal memuat dosen.");
+      setDosenOptions([]);
+    } finally {
+      setDosenLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDosen();
+  }, [fetchDosen]);
+
+  // =========================
+  // Kelas by Dosen (GET /dosenKelas/getKelas) -> {id,label}
+  // =========================
+  const [kelasOptions, setKelasOptions] = useState([]); // {id,label}[]
+  const [kelasLoading, setKelasLoading] = useState(false);
+  const [kelasErr, setKelasErr] = useState("");
+
+  const fetchKelasByDosen = useCallback(
+    async (idDosen, tahunAjarParam, semesterParam) => {
+      if (!idDosen) {
+        setKelasOptions([]);
+        setHeader((h) => ({ ...h, idKelas: "" }));
+        return;
+      }
+      setKelasLoading(true);
+      setKelasErr("");
+      try {
+        const token = localStorage.getItem("token");
+        const params = new URLSearchParams({
+          // backend butuh namaDosen untuk filter
+          namaDosen: dosenOptions.find((d) => d.id === idDosen)?.label || "",
+          tahunAjar: tahunAjarParam || tahunAjar,
+          semester: semesterParam || semester,
+        });
+        const res = await fetch(
+          `${API_BASE}/dosenKelas/getKelas?${params.toString()}`,
+          {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              ...NGROK_HEADERS,
+            },
+          }
+        );
+        if (!res.ok) {
+          const msg =
+            (await res.json().catch(() => ({})))?.message ||
+            "Gagal memuat kelas dosen.";
+          throw new Error(msg);
+        }
+        const payload = await res.json();
+        const list = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.data)
+          ? payload.data
+          : Array.isArray(payload?.kelas)
+          ? payload.kelas
+          : [];
+
+        const parsed = list
+          .map((k) => ({
+            id: String(k?.idKelas || k?.kodeKelas || k?.id || "").trim(),
+            label: String(k?.namaKelas || k?.kelas || k?.label || "").trim(),
+          }))
+          .filter((x) => x.id && x.label);
+
+        setKelasOptions(parsed);
+        setHeader((h) =>
+          parsed.some((k) => k.id === h.idKelas) ? h : { ...h, idKelas: "" }
+        );
+      } catch (e) {
+        console.error(e);
+        setKelasErr(e?.message || "Gagal memuat kelas dosen.");
+        setKelasOptions([]);
+        setHeader((h) => ({ ...h, idKelas: "" }));
+      } finally {
+        setKelasLoading(false);
+      }
+    },
+    [API_BASE, tahunAjar, semester, dosenOptions]
+  );
+
+  // re-fetch kelas saat idDosen/tahun/semester berubah
+  useEffect(() => {
+    if (header.idDosen) {
+      fetchKelasByDosen(header.idDosen, tahunAjar, semester);
+    } else {
+      setKelasOptions([]);
+      setHeader((h) => ({ ...h, idKelas: "" }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [header.idDosen, tahunAjar, semester]);
+
+  // isi otomatis nama asisten saat mount bila kosong
   useEffect(() => {
     const nm = getCurrentUserName();
     if (nm && !header.asisten) {
@@ -135,39 +309,50 @@ export default function FormTroubleShooting() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ===== Submit ke /praktikum/addPraktikum/{lab}/{kode} =====
+  // =========================
+  // Submit laporan
+  // =========================
   const onSubmit = async (e) => {
     e.preventDefault();
 
     if (!labCode) return alert("Kode lab (lab) tidak ditemukan di URL.");
     if (!kodePraktikum)
       return alert("Kode praktikum (kode) tidak ditemukan di URL.");
+
+    // VALIDASI
     if (!header.tanggal) return alert("Tanggal wajib diisi.");
-    if (!header.kelas) return alert("Kelas wajib diisi.");
-    if (!header.dosen) return alert("Dosen wajib diisi.");
+    if (!header.idDosen) return alert("Dosen (idDosen) wajib dipilih.");
+    if (!header.idKelas) return alert("Kelas (idKelas) wajib dipilih.");
     if (!header.waktuMulai) return alert("Waktu (mulai) wajib diisi.");
 
-    // dataAlat: pakai key jumlahAkhir (sesuai backend)
     const dataAlat = rows
       .map((r) => ({
         idBarang: (r.idBarang || "").trim(),
         jumlahAkhir: Number.isFinite(Number(r.akhir)) ? Number(r.akhir) : 0,
       }))
-      .filter((x) => x.idBarang); // idBarang wajib ada, jumlahAkhir boleh 0
+      .filter((x) => x.idBarang);
 
     if (dataAlat.length === 0) {
-      alert("Isi minimal 1 ID Barang (BRNG...) dan jumlah akhirnya.");
+      alert(
+        "Isi minimal 1 ID Barang (auto dari data lab) dan jumlah akhirnya."
+      );
       return;
     }
 
+    // backend butuh HH:MM:SS
+    const waktuWithSeconds =
+      header.waktuMulai.length === 5
+        ? `${header.waktuMulai}:00`
+        : header.waktuMulai;
+
     const fd = new FormData();
-    fd.append("waktu", header.waktuMulai);
-    fd.append("kelas", header.kelas);
+    fd.append("waktu", waktuWithSeconds);
+    fd.append("idKelas", header.idKelas);
     fd.append("tanggal", header.tanggal);
-    fd.append("dosen", header.dosen);
+    fd.append("idDosen", header.idDosen);
     fd.append("tindakLanjut", tindakLanjut || "");
-    fd.append("asisten", header.asisten || getCurrentUserName()); // <-- kirimkan asisten
-    if (ttdFile) fd.append("photoPraktikum", ttdFile);
+    fd.append("asisten", header.asisten || getCurrentUserName());
+    if (fotoFile) fd.append("photoPraktikum", fotoFile);
     fd.append("dataAlat", JSON.stringify(dataAlat));
 
     try {
@@ -176,9 +361,7 @@ export default function FormTroubleShooting() {
         `${API_BASE}/praktikum/addPraktikum/${labCode}/${kodePraktikum}`,
         {
           method: "POST",
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
+          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           body: fd,
         }
       );
@@ -189,10 +372,9 @@ export default function FormTroubleShooting() {
       }
 
       alert("Laporan praktikum berhasil dikirim.");
-      // reset ringan
       setTindakLanjut("");
-      setTtdFile(null);
-      setTtdPreview("");
+      setFotoFile(null);
+      setFotoPreview("");
       setRows((prev) => prev.map((r) => ({ ...r, akhir: "", kerusakan: "" })));
     } catch (err) {
       console.error(err);
@@ -208,9 +390,10 @@ export default function FormTroubleShooting() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <h1 className="text-2xl font-bold">Form Pengecekan Lab Hardware</h1>
         <p className="block text-sm font-medium mb-5">
-          Praktikum Trouble Shooting —{" "}
+          Praktikum Troubleshooting —{" "}
           <span className="opacity-80">
-            Lab: {labCode || "-"} | Kode: {kodePraktikum || "-"}
+            Lab: {LAB_NAMES[labCode] || labCode || "-"} | Praktikum:{" "}
+            {PRAKTIKUM_NAMES[kodePraktikum] || kodePraktikum || "-"}
           </span>
         </p>
 
@@ -226,8 +409,8 @@ export default function FormTroubleShooting() {
         )}
 
         {/* Header form */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+          <div className="md:col-span-1">
             <label className="block text-sm font-medium mb-1">
               Hari / Tanggal
             </label>
@@ -241,32 +424,107 @@ export default function FormTroubleShooting() {
             />
           </div>
 
+          {/* Tahun Ajar */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Tahun Ajar</label>
+            <input
+              type="text"
+              value={tahunAjar}
+              onChange={(e) => setTahunAjar(e.target.value)}
+              className="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-600"
+              placeholder="2025"
+            />
+          </div>
+
+          {/* Semester */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Semester</label>
+            <select
+              value={semester}
+              onChange={(e) => setSemester(e.target.value)}
+              className="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-600"
+            >
+              <option value="Ganjil">Ganjil</option>
+              <option value="Genap">Genap</option>
+            </select>
+          </div>
+
+          {/* Dosen (ID disembunyikan; dropdown tampil label) */}
           <div>
             <label className="block text-sm font-medium mb-1">Dosen</label>
-            <input
-              type="text"
-              value={header.dosen}
+            <select
+              value={header.idDosen}
               onChange={(e) =>
-                setHeader((h) => ({ ...h, dosen: e.target.value }))
+                setHeader((h) => ({
+                  ...h,
+                  idDosen: e.target.value,
+                  idKelas: "",
+                }))
               }
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 placeholder:text-slate-400 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-600"
-              placeholder="cth: Pak Budi"
-            />
+              className="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-600"
+            >
+              <option value="">
+                {dosenLoading ? "Memuat dosen…" : "Pilih dosen…"}
+              </option>
+              {dosenOptions.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.label}
+                </option>
+              ))}
+            </select>
+            {(dosenErr || dosenLoading) && (
+              <p className="mt-1 text-[11px] text-slate-400">
+                {dosenErr ? (
+                  <span className="text-red-300">Error: {dosenErr}</span>
+                ) : (
+                  " "
+                )}
+              </p>
+            )}
           </div>
 
+          {/* Kelas (ID disembunyikan; dropdown tampil label) */}
           <div>
             <label className="block text-sm font-medium mb-1">Kelas</label>
-            <input
-              type="text"
-              value={header.kelas}
+            <select
+              value={header.idKelas}
               onChange={(e) =>
-                setHeader((h) => ({ ...h, kelas: e.target.value }))
+                setHeader((h) => ({ ...h, idKelas: e.target.value }))
               }
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 placeholder:text-slate-400 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-600"
-              placeholder="cth: ARS1-S1"
-            />
+              disabled={!header.idDosen}
+              className={`w-full rounded-lg border ${
+                header.idDosen
+                  ? "border-slate-700"
+                  : "border-slate-800 opacity-60"
+              } bg-slate-900 text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-600`}
+            >
+              <option value="">
+                {!header.idDosen
+                  ? "Pilih dosen dulu"
+                  : kelasLoading
+                  ? "Memuat kelas…"
+                  : "Pilih kelas…"}
+              </option>
+              {kelasOptions.map((k) => (
+                <option key={k.id} value={k.id}>
+                  {k.label}
+                </option>
+              ))}
+            </select>
+            {(kelasErr || kelasLoading) && (
+              <p className="mt-1 text-[11px]">
+                {kelasErr ? (
+                  <span className="text-red-300">Error: {kelasErr}</span>
+                ) : (
+                  " "
+                )}
+              </p>
+            )}
           </div>
+        </div>
 
+        {/* Asisten & Waktu */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div>
             <label className="block text-sm font-medium mb-1">Asisten</label>
             <input
@@ -278,13 +536,10 @@ export default function FormTroubleShooting() {
               placeholder="Nama asisten (otomatis)"
             />
           </div>
-        </div>
 
-        {/* Waktu */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div>
             <label className="block text-sm font-medium mb-1">
-              Waktu Mulai
+              Waktu (mulai)
             </label>
             <input
               type="time"
@@ -295,9 +550,10 @@ export default function FormTroubleShooting() {
               className="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-600"
             />
           </div>
+
           <div>
             <label className="block text-sm font-medium mb-1">
-              Waktu Selesai
+              Waktu selesai
             </label>
             <input
               type="time"
@@ -320,8 +576,8 @@ export default function FormTroubleShooting() {
                 <th className="px-4 py-3 w-40 text-slate-200">
                   ID Barang (BRNG…)
                 </th>
-                <th className="px-4 py-3 w-36 text-slate-200">Jumlah Awal</th>
-                <th className="px-4 py-3 w-36 text-slate-200">Jumlah Akhir</th>
+                <th className="px-4 py-3 w-28 text-slate-200">Jumlah Awal</th>
+                <th className="px-4 py-3 w-28 text-slate-200">Jumlah Akhir</th>
                 <th className="px-4 py-3 w-64 text-slate-200">Kerusakan</th>
               </tr>
             </thead>
@@ -350,7 +606,7 @@ export default function FormTroubleShooting() {
                         handleRowChange(r.id, "awal", e.target.value)
                       }
                       className="w-full rounded-md border border-slate-700 bg-slate-950 text-slate-100 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-slate-600"
-                      placeholder="auto dari jumlahNormal"
+                      placeholder="auto dari data lab"
                     />
                   </td>
                   <td className="px-4 py-2">
@@ -381,7 +637,7 @@ export default function FormTroubleShooting() {
           </table>
         </div>
 
-        {/* Tindak lanjut & TTD (foto) */}
+        {/* Tindak lanjut & Foto */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
           <div>
             <label className="block text-sm font-medium mb-1">
@@ -404,21 +660,21 @@ export default function FormTroubleShooting() {
               type="file"
               accept="image/*"
               capture="environment"
-              onChange={onPickTtd}
+              onChange={onPickFoto}
               className="block w-full text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-slate-800 file:px-3 file:py-2 file:text-slate-100 file:hover:bg-slate-700 hover:cursor-pointer text-slate-300"
             />
-            {ttdPreview && (
+            {fotoPreview && (
               <div className="mt-3">
                 <div className="text-xs text-slate-400 mb-1">Preview:</div>
                 <img
-                  src={ttdPreview}
-                  alt="Preview TTD"
+                  src={fotoPreview}
+                  alt="Preview"
                   className="h-40 w-auto rounded-lg border border-slate-800 object-contain bg-slate-900"
                 />
                 <div className="mt-2 flex gap-2">
                   <button
                     type="button"
-                    onClick={clearTtd}
+                    onClick={clearFoto}
                     className="rounded-2xl px-3 py-1.5 text-xs font-medium ring-1 ring-slate-700 hover:bg-slate-900"
                   >
                     Hapus Foto

@@ -11,6 +11,8 @@ import Register from "./pages/register";
 import Profile from "./pages/Profile";
 
 // ASISTEN
+import PerangkatLab from "./pages/assistant/template/PerangkatLab";
+
 // LAB 609
 import MerakitPc from "./pages/assistant/lab609/MerakitPc";
 import BiosPartisi from "./pages/assistant/lab609/BiosPartisi";
@@ -34,9 +36,15 @@ import FormTroubleShooting from "./pages/assistant/form/FormTroubleShooting";
 // ADMIN
 import DashboardAdmin from "./pages/admin/Dashboard";
 import DaftarAsisten from "./pages/admin/DaftarAsisten";
+import AddJadwalAsisten from "./pages/admin/AddJadwalAsisten";
+import JadwalAsisten from "./pages/admin/JadwalAsisten";
 import AktivitasAsisten from "./pages/admin/AktifitasAsisten";
 import AdminLab609 from "./pages/admin/lab609";
 import AdminLab610 from "./pages/admin/lab610";
+
+import DaftarDosen from "./pages/admin/DaftarDosen";
+import DaftarKelas from "./pages/admin/DaftarKelas";
+import MasterBarang from "./pages/admin/MasterBarang";
 
 function AppContent() {
   const { role } = useRole();
@@ -65,11 +73,13 @@ function AppContent() {
           <Route path="/lab609" element={<Lab609 />} />
           <Route path="/lab610" element={<Lab610 />} />
 
+          <Route path="/perangkatlab" element={<PerangkatLab />} />
+
           {/* LAB 609 */}
           <Route path="/lab609_merakit_pc" element={<MerakitPc />} />
-          <Route path="/lab609_bios_partisi" element={<BiosPartisi />} />
-          <Route path="/lab609_jarkom" element={<JaringanKomputer />} />
-          <Route path="/lab609_troubleshooting" element={<Troubleshooting />} />
+          <Route path="/lab609_bios_partisi" element={<MerakitPc />} />
+          <Route path="/lab609_jarkom" element={<MerakitPc />} />
+          <Route path="/lab609_troubleshooting" element={<MerakitPc />} />
 
           <Route path="/history_detail/:idHistory" element={<Detail />} />
 
@@ -84,12 +94,9 @@ function AppContent() {
 
           {/* LAB 610 */}
           <Route path="/lab610_merakit_pc" element={<MerakitPc610 />} />
-          <Route path="/lab610_bios_partisi" element={<BiosPartisi610 />} />
-          <Route path="/lab610_jarkom" element={<JaringanKomputer610 />} />
-          <Route
-            path="/lab610_troubleshooting"
-            element={<Troubleshooting610 />}
-          />
+          <Route path="/lab610_bios_partisi" element={<MerakitPc610 />} />
+          <Route path="/lab610_jarkom" element={<MerakitPc610 />} />
+          <Route path="/lab610_troubleshooting" element={<MerakitPc610 />} />
 
           {/* FORM LAB 610 */}
           <Route path="/form_merakit_pc" element={<FormMerakitPc />} />
@@ -102,6 +109,8 @@ function AppContent() {
 
           {/* Admin */}
           <Route path="/dashboard_admin" element={<DashboardAdmin />} />
+          <Route path="/jadwal_asisten" element={<JadwalAsisten />} />
+          <Route path="/jadwal_asisten/add" element={<AddJadwalAsisten />} />
           <Route path="/daftar_asisten" element={<DaftarAsisten />} />
           <Route path="/admin/lab609" element={<AdminLab609 />} />
           <Route path="/admin/lab610" element={<AdminLab610 />} />
@@ -109,6 +118,10 @@ function AppContent() {
             path="/daftar_asisten/:nim/aktivitas"
             element={<AktivitasAsisten />}
           />
+
+          <Route path="/admin/dosen" element={<DaftarDosen />} />
+          <Route path="/admin/kelas" element={<DaftarKelas />} />
+          <Route path="/admin/barang" element={<MasterBarang />} />
         </Routes>
       </div>
     </>

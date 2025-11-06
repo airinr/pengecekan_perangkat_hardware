@@ -49,7 +49,7 @@ const seed = [
   },
 ];
 
-export default function AktivitasAsisten() {
+export default function AktifitasAsisten() {
   const { nim } = useParams();
   const navigate = useNavigate();
 

@@ -1,11 +1,8 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable no-undef */
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import TablePage from "../template/TableTemplate";
-
-const KODE_PRAKTIKUM = "PRTK00001";
-const LAB_CODE = "LAB00001";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 const NGROK_HEADERS = { "ngrok-skip-browser-warning": "true" };
@@ -13,27 +10,50 @@ const NGROK_HEADERS = { "ngrok-skip-browser-warning": "true" };
 const STATUS_COMPLETE = "Lengkap";
 const STATUS_INCOMPLETE = "Tidak Lengkap";
 
-// +++ tambah kolom TTD + Nama/Asisten + Status + Aksi
 const columns = [
   { key: "no", header: "#" },
   { key: "tgl", header: "Hari/Tanggal" },
   { key: "kelas", header: "Kelas" },
   { key: "waktu", header: "Waktu" },
+  { key: "dosen", header: "Dosen" },
   { key: "asisten", header: "Nama/Asisten" },
   { key: "ttd", header: "TTD" },
   { key: "tindak_lanjut", header: "Tindak Lanjut" },
-  { key: "status", header: "Status" }, // <-- baru
+  { key: "status", header: "Status" },
   { key: "aksi", header: "Aksi" },
 ];
 
-const toUrl = (v) => {
-  if (!v || typeof v !== "string") return "";
-  if (v.startsWith("http://") || v.startsWith("https://")) return v;
-  if (v.startsWith("/")) return `${API_BASE}${v}`;
-  return `${API_BASE}/${v}`;
+const LAB_NAMES = { LAB00001: "Lab 609", LAB00002: "Lab 610" };
+const PRAKTIKUM_NAMES = {
+  PRTK00001: "Merakit Komputer",
+  PRTK00002: "BIOS & Partisi",
+  PRTK00003: "Jaringan Komputer",
+  PRTK00004: "Troubleshooting",
 };
 
-// ambil kode lab dari berbagai kemungkinan field
+// 🔹 mapping path <-> kode praktikum (pastikan path ini ada di <Routes/>)
+const PATH_TO_KODE = {
+  "/lab609_merakit_pc": "PRTK00001",
+  "/lab609_bios_partisi": "PRTK00002",
+  "/lab609_jarkom": "PRTK00003",
+  "/lab609_troubleshooting": "PRTK00004",
+};
+
+// ✅ mapping KODE_PRAKTIKUM → PATH FORM (sesuai <Routes/> kamu)
+const FORM_ROUTE_BY_KODE = {
+  PRTK00001: "/form_merakit_pc",
+  PRTK00002: "/form_bios_partisi",
+  PRTK00003: "/form_jarkom",
+  PRTK00004: "/form_troubleshooting",
+};
+
+const toUrl = (v, apiBase) => {
+  if (!v || typeof v !== "string") return "";
+  if (v.startsWith("http://") || v.startsWith("https://")) return v;
+  if (v.startsWith("/")) return `${apiBase}${v}`;
+  return `${apiBase}/${v}`;
+};
+
 const getLabCode = (h) =>
   h?.idlab ??
   h?.labId ??
@@ -45,7 +65,6 @@ const getLabCode = (h) =>
   h?.idLab ??
   "";
 
-// ambil id history dari berbagai kemungkinan field backend
 const getHistoryId = (h) =>
   h?.idHistory ??
   h?.idhistory ??
@@ -57,7 +76,6 @@ const getHistoryId = (h) =>
   h?.code ??
   null;
 
-// ambil nama user/asisten dari berbagai kemungkinan field backend
 const getUserName = (h) =>
   h?.userModel?.nama ||
   h?.user?.nama ||
@@ -68,25 +86,45 @@ const getUserName = (h) =>
   h?.userName ||
   "";
 
+const getClassName = (h) =>
+  h?.kelas ??
+  h?.Kelas ??
+  h?.nama_kelas ??
+  h?.kelas_nama ??
+  h?.class ??
+  h?.className ??
+  h?.kelasPraktikum ??
+  h?.kelasModel?.namaKelas ??
+  "";
+
+const getDosenName = (h) =>
+  h?.dosenModel?.namaDosen ??
+  h?.dosen?.nama ??
+  h?.namaDosen ??
+  h?.dosen_name ??
+  h?.lecturer ??
+  "";
+
 const norm = (s) =>
   String(s || "")
     .trim()
     .toUpperCase();
 
-// --- fungsi bantu untuk nilai status dari detail history
+const STATUS_COMPLETE_LABEL = "Lengkap";
+const STATUS_INCOMPLETE_LABEL = "Tidak Lengkap";
+
 const computeStatus = (details) => {
-  if (!Array.isArray(details) || details.length === 0) return STATUS_INCOMPLETE;
+  if (!Array.isArray(details) || details.length === 0)
+    return STATUS_INCOMPLETE_LABEL;
   for (const d of details) {
     const awal = Number(d?.jumlahAwal ?? 0);
     const akhir = Number(d?.jumlahAkhir ?? 0);
     const rusak = Number(d?.jumlahRusak ?? 0);
-    // aturan sederhana: jika ada yang rusak atau stok akhir kurang dari awal -> tidak lengkap
-    if (rusak > 0 || akhir < awal) return STATUS_INCOMPLETE;
+    if (rusak > 0 || akhir < awal) return STATUS_INCOMPLETE_LABEL;
   }
-  return STATUS_COMPLETE;
+  return STATUS_COMPLETE_LABEL;
 };
 
-// fetch detail per history lalu kembalikan status
 async function fetchStatusByHistoryId(hid, token) {
   try {
     const res = await fetch(
@@ -104,7 +142,7 @@ async function fetchStatusByHistoryId(hid, token) {
     const details = Array.isArray(payload?.data) ? payload.data : [];
     return computeStatus(details);
   } catch {
-    return STATUS_INCOMPLETE; // jika gagal ambil detail, tandai tidak lengkap
+    return STATUS_INCOMPLETE_LABEL;
   }
 }
 
@@ -113,10 +151,16 @@ export default function MerakitPc() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const navigate = useNavigate();
+  const [sp] = useSearchParams();
+
+  // 🔹 Ambil dari query, fallback kalau kosong
+  const LAB_CODE = sp.get("lab") || "LAB00001";
+  const KODE_PRAKTIKUM = (sp.get("kode") || "PRTK00001").toUpperCase();
 
   useEffect(() => {
     let alive = true;
     (async () => {
+      setRows([]);
       setLoading(true);
       setErr("");
       try {
@@ -136,25 +180,26 @@ export default function MerakitPc() {
             ...NGROK_HEADERS,
           },
         });
-        if (!res.ok) throw new Error(await res.text());
+
+        if (!res.ok) {
+          if (alive) setRows([]);
+          throw new Error(await res.text());
+        }
 
         const payload = await res.json();
         const raw = Array.isArray(payload?.data) ? payload.data : [];
-
-        // filter by LAB
         const data = raw.filter((h) => norm(getLabCode(h)) === norm(LAB_CODE));
 
-        // Ambil status detail untuk tiap history (parallel)
         const statusList = await Promise.all(
           data.map(async (h) => {
             const hid = getHistoryId(h);
-            if (!hid) return STATUS_INCOMPLETE;
+            if (!hid) return STATUS_INCOMPLETE_LABEL;
             return fetchStatusByHistoryId(hid, token);
           })
         );
 
         const mapped = data.map((h, i) => {
-          const ttdUrl = toUrl(h?.ttd);
+          const ttdUrl = toUrl(h?.ttd, API_BASE);
           const hid = getHistoryId(h);
           const nama = getUserName(h);
 
@@ -165,12 +210,11 @@ export default function MerakitPc() {
             });
           };
 
-          // badge status
           const status = statusList[i];
           const statusNode = (
             <span
               className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${
-                status === STATUS_COMPLETE
+                status === STATUS_COMPLETE_LABEL
                   ? "bg-green-500/15 text-green-300 ring-green-500/30"
                   : "bg-rose-500/15 text-rose-300 ring-rose-500/30"
               }`}
@@ -182,8 +226,9 @@ export default function MerakitPc() {
           return {
             no: i + 1,
             tgl: h?.tanggal ?? "",
-            kelas: h?.kelas ?? "",
+            kelas: getClassName(h),
             waktu: h?.waktu ?? "",
+            dosen: getDosenName(h),
             asisten: nama || "—",
             ttd: ttdUrl ? (
               <a href={ttdUrl} target="_blank" rel="noreferrer">
@@ -197,7 +242,7 @@ export default function MerakitPc() {
               "—"
             ),
             tindak_lanjut: h?.tindakLanjut ?? "",
-            status: statusNode, // <-- tampilkan status
+            status: statusNode,
             aksi: (
               <button
                 type="button"
@@ -219,7 +264,10 @@ export default function MerakitPc() {
         if (alive) setRows(mapped);
       } catch (e) {
         console.error(e);
-        if (alive) setErr(e?.message || "Gagal memuat histori praktikum");
+        if (alive) {
+          setErr(e?.message || "Gagal memuat histori praktikum");
+          setRows([]);
+        }
       } finally {
         if (alive) setLoading(false);
       }
@@ -227,26 +275,84 @@ export default function MerakitPc() {
     return () => {
       alive = false;
     };
-  }, [navigate]);
+  }, [navigate, LAB_CODE, KODE_PRAKTIKUM]);
 
-  const addHref = `/form_merakit_pc?kode=${encodeURIComponent(
+  // 🔹 Penamaan dinamis
+  const labName = LAB_NAMES[LAB_CODE] || LAB_CODE;
+  const praktikumName = PRAKTIKUM_NAMES[KODE_PRAKTIKUM] || KODE_PRAKTIKUM;
+
+  // 🔹 Fallback back button
+  const fallbackPath =
+    LAB_CODE === "LAB00001"
+      ? "/lab609"
+      : LAB_CODE === "LAB00002"
+      ? "/lab610"
+      : "/dashboard_asisten";
+
+  const goBack = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate(fallbackPath, { replace: true });
+  };
+
+  // ===== Dropdown kategori (PATH /lab609_* + ?kode=...&lab=...)
+  const handleNavigateCategory = (path) => {
+    if (!path) return;
+    const kode = PATH_TO_KODE[path] || "";
+    const next = `${path}?kode=${encodeURIComponent(
+      kode
+    )}&lab=${encodeURIComponent(LAB_CODE)}`;
+    navigate(next);
+  };
+
+  // ✅ tentukan path form berdasarkan KODE_PRAKTIKUM
+  const formPath = FORM_ROUTE_BY_KODE[KODE_PRAKTIKUM] || "/form_merakit_pc";
+  const addRoute = `${formPath}?kode=${encodeURIComponent(
     KODE_PRAKTIKUM
   )}&lab=${encodeURIComponent(LAB_CODE)}`;
 
   return (
-    <TablePage
-      title="Perangkat Laboratorium 609 - Merakit PC"
-      addRoute={addHref}
-      addLabel="+ Tambah Data"
-      columns={columns}
-      rows={rows}
-      note={
-        loading
-          ? "Memuat histori praktikum…"
-          : err
-          ? `Error: ${err}`
-          : "*Berikut merupakan laporan terakhir (LAB609)"
-      }
-    />
+    <div className="px-4 sm:px-6 lg:px-8 py-4">
+      {/* Dropdown kategori */}
+      <div className="py-6 lg:ml-56 lg:pl-5">
+        <label
+          htmlFor="topik"
+          className="mb-2 block text-sm font-medium text-slate-200"
+        >
+          Pilih kategori untuk melakukan laporan
+        </label>
+
+        <select
+          id="topik"
+          defaultValue=""
+          onChange={(e) => handleNavigateCategory(e.target.value)}
+          className="mb-6 block w-full appearance-none rounded-lg border border-white/15 bg-slate-900/60 px-3 py-2 pr-9 text-sm text-slate-100"
+        >
+          <option value="" disabled>
+            Pilih kategori
+          </option>
+          <option value="/lab609_merakit_pc">Merakit Komputer</option>
+          <option value="/lab609_bios_partisi">Bios dan Partisi</option>
+          <option value="/lab609_jarkom">Jaringan Komputer</option>
+          <option value="/lab609_troubleshooting">Troubleshooting</option>
+        </select>
+      </div>
+
+      <TablePage
+        title={`${praktikumName} — ${labName}`}
+        addRoute={addRoute}
+        addLabel={`+ Lakukan pelaporan praktikum ${praktikumName}`}
+        columns={columns}
+        rows={rows}
+        note={
+          loading
+            ? "Memuat histori praktikum…"
+            : err
+            ? `Error: ${err}`
+            : rows.length === 0
+            ? "Belum ada histori. Silakan buat laporan pertama."
+            : `*Berikut merupakan laporan terakhir (${labName})`
+        }
+      />
+    </div>
   );
 }

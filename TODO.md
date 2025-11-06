@@ -1,7 +1,5 @@
-- [x] Reduce mobile topbar height from h-16 to h-12
-- [x] Reduce logo size in mobile from h-8 w-8 to h-6 w-6
-- [x] Reduce font size in mobile from text-lg to text-base
-- [x] Reduce desktop header height from h-16 to h-12
-- [x] Reduce logo size in desktop from h-9 w-9 to h-7 w-7
-- [x] Reduce font size in desktop from text-lg to text-base
-- [x] Reduce nav link padding from px-3 py-2 to px-2 py-1
+# TODO: Tambahkan Dropdown di Menu Navbar Admin dan Halaman Jadwal Asisten
+
+- [x] Edit src/components/NavbarAdmin.jsx: Tambahkan dropdown "Asisten" dengan submenu "Jadwal Asisten" (/jadwal_asisten) dan "Daftar Asisten" (/daftar_asisten), hapus NavLink langsung untuk Daftar Asisten.
+- [x] Buat file baru src/pages/admin/JadwalAsisten.jsx: Halaman untuk menampilkan jadwal asisten.
+- [x] Update routing di App.jsx jika perlu untuk /jadwal_asisten.
