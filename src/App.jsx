@@ -1,4 +1,10 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+/* eslint-disable no-unused-vars */
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useLocation,
+} from "react-router-dom";
 import { RoleProvider, useRole } from "./contexts/RoleContext";
 import NavbarAsisten from "./components/NavbarAsisten";
 import NavbarAdmin from "./components/NavbarAdmin";
@@ -7,7 +13,7 @@ import Lab609 from "./pages/assistant/Lab609";
 import Lab610 from "./pages/assistant/Lab610";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
-import Register from "./pages/register";
+import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 
 // ASISTEN
@@ -48,19 +54,29 @@ import MasterBarang from "./pages/admin/MasterBarang";
 
 function AppContent() {
   const { role } = useRole();
+  const { pathname } = useLocation();
 
   // Navbar sesuai role
   const showNavbarAsisten = role === "asisten";
   const showNavbarAdmin = role === "admin";
 
-  const withTopbarAndSidebar = showNavbarAsisten || showNavbarAdmin;
+  // Halaman yang TIDAK menampilkan navbar
+  const HIDE_PREFIX = ["/login", "/register", "/forgot-password"]; // prefix match
+  const HIDE_EXACT = ["/"]; // exact match: landing
+  const hideNavbar =
+    HIDE_EXACT.includes(pathname) ||
+    HIDE_PREFIX.some((p) => pathname.startsWith(p));
+
+  // Sidebar hanya milik Admin; topbar fixed milik admin/asisten
+  const hasSidebar = !hideNavbar && showNavbarAdmin;
+  const hasFixedTopbar = !hideNavbar && (showNavbarAdmin || showNavbarAsisten);
 
   return (
     <>
-      {showNavbarAsisten && <NavbarAsisten />}
-      {showNavbarAdmin && <NavbarAdmin />}
+      {!hideNavbar && showNavbarAsisten && <NavbarAsisten />}
+      {!hideNavbar && showNavbarAdmin && <NavbarAdmin />}
 
-      <div className={withTopbarAndSidebar}>
+      <div className={hasSidebar}>
         <Routes>
           {/* Publik */}
           <Route path="/" element={<Landing />} />

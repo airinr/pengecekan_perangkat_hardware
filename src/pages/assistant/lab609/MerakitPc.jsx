@@ -153,6 +153,11 @@ export default function MerakitPc() {
   const navigate = useNavigate();
   const [sp] = useSearchParams();
 
+  // 🔽 state untuk EXPORT CSV
+  const [exportStart, setExportStart] = useState("");
+  const [exportEnd, setExportEnd] = useState("");
+  const [exportMsg, setExportMsg] = useState("");
+
   // 🔹 Ambil dari query, fallback kalau kosong
   const LAB_CODE = sp.get("lab") || "LAB00001";
   const KODE_PRAKTIKUM = (sp.get("kode") || "PRTK00001").toUpperCase();
@@ -258,6 +263,9 @@ export default function MerakitPc() {
                 Detail
               </button>
             ),
+            // 🔽 simpan teks status & url ttd mentah untuk kebutuhan export
+            statusText: status,
+            ttdUrlRaw: ttdUrl,
           };
         });
 
@@ -276,6 +284,98 @@ export default function MerakitPc() {
       alive = false;
     };
   }, [navigate, LAB_CODE, KODE_PRAKTIKUM]);
+
+  // 🔽 handler EXPORT CSV dengan rentang tanggal
+  const handleExportCsv = (e) => {
+    e.preventDefault();
+    setExportMsg("");
+
+    if (!rows || rows.length === 0) {
+      setExportMsg("Tidak ada data untuk diekspor.");
+      return;
+    }
+
+    let start = null;
+    let end = null;
+
+    if (exportStart) {
+      start = new Date(exportStart);
+    }
+    if (exportEnd) {
+      end = new Date(exportEnd);
+      end.setHours(23, 59, 59, 999); // supaya inklusif
+    }
+
+    const filtered = rows.filter((row) => {
+      if (!row.tgl) return false;
+      const d = new Date(row.tgl);
+      if (Number.isNaN(d.getTime())) return false;
+
+      if (start && d < start) return false;
+      if (end && d > end) return false;
+
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      setExportMsg("Tidak ada data dalam rentang tanggal tersebut.");
+      return;
+    }
+
+    // header CSV
+    const header = [
+      "tanggal",
+      "kelas",
+      "waktu",
+      "dosen",
+      "asisten",
+      "tindak_lanjut",
+      "status",
+      "ttd_url",
+    ];
+
+    const escapeCsv = (value) => {
+      const v = value == null ? "" : String(value);
+      // ganti " jadi "" lalu bungkus pakai "
+      return `"${v.replace(/"/g, '""')}"`;
+    };
+
+    const lines = [];
+    lines.push(header.map(escapeCsv).join(","));
+
+    filtered.forEach((row) => {
+      const line = [
+        row.tgl || "",
+        row.kelas || "",
+        row.waktu || "",
+        row.dosen || "",
+        typeof row.asisten === "string" ? row.asisten : "",
+        row.tindak_lanjut || "",
+        row.statusText || "",
+        row.ttdUrlRaw || "",
+      ].map(escapeCsv);
+
+      lines.push(line.join(","));
+    });
+
+    const csvContent = lines.join("\r\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const fileName = `histori_${KODE_PRAKTIKUM}_${LAB_CODE}${
+      exportStart ? `_${exportStart}` : ""
+    }${exportEnd ? `_${exportEnd}` : ""}.csv`;
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    setExportMsg(`Berhasil mengekspor ${filtered.length} baris ke CSV.`);
+  };
 
   // 🔹 Penamaan dinamis
   const labName = LAB_NAMES[LAB_CODE] || LAB_CODE;
@@ -311,7 +411,7 @@ export default function MerakitPc() {
   )}&lab=${encodeURIComponent(LAB_CODE)}`;
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-4">
+    <div className="px-4 sm:px-6 lg:px-8 mt-16 sm:mt-6 pb-4">
       {/* Dropdown kategori */}
       <div className="py-6 lg:ml-56 lg:pl-5">
         <label
@@ -335,6 +435,51 @@ export default function MerakitPc() {
           <option value="/lab609_jarkom">Jaringan Komputer</option>
           <option value="/lab609_troubleshooting">Troubleshooting</option>
         </select>
+      </div>
+
+      {/* 🔽 FORM EXPORT CSV DENGAN RENTANG TANGGAL */}
+      <div className="mb-6 rounded-xl border border-white/10 bg-slate-900/70 p-4 lg:ml-56 lg:pl-5">
+        <h2 className="text-sm font-semibold text-slate-100 mb-3">
+          Export CSV histori praktikum ({praktikumName} — {labName})
+        </h2>
+        <form
+          onSubmit={handleExportCsv}
+          className="flex flex-col gap-3 md:flex-row md:items-end"
+        >
+          <div className="flex-1">
+            <label className="block text-xs font-medium text-slate-300 mb-1">
+              Tanggal mulai
+            </label>
+            <input
+              type="date"
+              value={exportStart}
+              onChange={(e) => setExportStart(e.target.value)}
+              className="block w-full rounded-lg border border-white/15 bg-slate-950/60 px-3 py-2 text-sm text-slate-100"
+            />
+          </div>
+          <div className="flex-1">
+            <label className="block text-xs font-medium text-slate-300 mb-1">
+              Tanggal selesai
+            </label>
+            <input
+              type="date"
+              value={exportEnd}
+              onChange={(e) => setExportEnd(e.target.value)}
+              className="block w-full rounded-lg border border-white/15 bg-slate-950/60 px-3 py-2 text-sm text-slate-100"
+            />
+          </div>
+          <div>
+            <button
+              type="submit"
+              className="inline-flex items-center rounded-lg px-4 py-2 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-500"
+            >
+              Export CSV
+            </button>
+          </div>
+        </form>
+        {exportMsg && (
+          <p className="mt-2 text-xs text-slate-300">{exportMsg}</p>
+        )}
       </div>
 
       <TablePage

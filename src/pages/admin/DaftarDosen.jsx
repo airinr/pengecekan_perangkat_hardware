@@ -811,7 +811,7 @@ export default function DaftarDosen() {
   };
 
   return (
-    <div className="lg:ml-56">
+    <div className="lg:ml-56 ">
       {/* Header */}
       <div className="px-4 pt-6 pb-3">
         <div className="flex flex-wrap items-start justify-between gap-3">

@@ -1,3 +1,4 @@
+/* eslint-disable no-empty */
 /* eslint-disable no-unused-vars */
 /* eslint-disable no-useless-escape */
 /* eslint-disable no-undef */
@@ -15,16 +16,50 @@ export default function DaftarKelas() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
-  // === CONFIG API ===
-  const API_BASE = import.meta.env.VITE_API_URL || "";
-  const NGROK_HEADERS = { "ngrok-skip-browser-warning": "true" };
+  // === CONFIG API (ambil dari .env Vite) ===
+  // Pastikan di .env(.local) ada: VITE_API_URL=https://domain-API-kamu.tld
+  const RAW_API_BASE = import.meta.env.VITE_API_URL || "";
+  // buang trailing slash agar konsisten
+  const API_BASE = RAW_API_BASE.replace(/\/+$/, "");
+  // header ngrok otomatis aktif hanya jika base mengandung "ngrok"
+  const NGROK_HEADERS = /ngrok/i.test(API_BASE)
+    ? { "ngrok-skip-browser-warning": "true" }
+    : {};
+  if (!API_BASE) {
+    console.warn(
+      "VITE_API_URL belum diset. Tambahkan di .env: VITE_API_URL=https://your-api"
+    );
+  }
 
   const KELAS_API = {
     LIST: `${API_BASE}/kelas`,
     CREATE: `${API_BASE}/kelas/addKelas`,
     UPDATE: (id) => `${API_BASE}/kelas/${encodeURIComponent(id)}`,
+    // NOTE: kalau backend kamu sudah RESTful, ganti DELETE ke /kelas/:id
     DELETE: (id) => `${API_BASE}/kelas/deleteKelas/${encodeURIComponent(id)}`,
     DETAIL: (id) => `${API_BASE}/kelas/${encodeURIComponent(id)}`,
+    BULK_ADD: `${API_BASE}/kelas/bulkAdd`,
+  };
+
+  // --- helper: parse JSON aman (hindari "Unexpected token '<'") ---
+  const safeJson = async (res) => {
+    const ct = (res.headers.get("content-type") || "").toLowerCase();
+    if (ct.includes("application/json")) return res.json();
+    const text = await res.text();
+    // Kalau HTML/ngrok page, biasanya mulai dengan "<!DOCTYPE" atau "<html"
+    if (text.trim().startsWith("<")) {
+      throw new Error(
+        `Server membalas HTML (status ${res.status}). Kemungkinan salah URL, 404, atau blokir CORS.\n` +
+          `Cuplikan: ${text.slice(0, 180)}`
+      );
+    }
+    // Bukan JSON, bukan HTML—tetap lempar dengan cuplikan
+    throw new Error(
+      `Server membalas non-JSON (status ${res.status}). Cuplikan: ${text.slice(
+        0,
+        180
+      )}`
+    );
   };
 
   // === STATE ===
@@ -58,6 +93,14 @@ export default function DaftarKelas() {
   const detailModalRef = useRef(null);
   const reqRef = useRef(0);
 
+  // === IMPORT CSV STATE ===
+  const [openImport, setOpenImport] = useState(false);
+  const [importBusy, setImportBusy] = useState(false);
+  const [importErr, setImportErr] = useState("");
+  const [importOk, setImportOk] = useState("");
+  const [importStats, setImportStats] = useState({ total: 0, ok: 0, fail: 0 });
+  const [importFileName, setImportFileName] = useState("");
+
   // === Normalizer ===
   const normalizeKelas = (it) => {
     const id =
@@ -65,6 +108,58 @@ export default function DaftarKelas() {
     const nama =
       it?.namaKelas ?? it?.nama ?? it?.name ?? it?.kelas ?? it?.label ?? "";
     return { id: String(id).trim(), nama: String(nama).trim() };
+  };
+
+  const sanitizeNamaKelas = (s) =>
+    String(s || "")
+      .replace(/^\uFEFF/, "")
+      .replace(/\u00A0/g, " ")
+      .replace(/^["']|["']$/g, "")
+      .replace(/[;]+$/g, "")
+      .trim();
+
+  const parseCsvToNamaKelas = async (file) => {
+    const textRaw = await file.text();
+    const text = textRaw.replace(/^\uFEFF/, "");
+    const sample = text.split(/\r?\n/).slice(0, 5).join("\n");
+    const counts = {
+      comma: (sample.match(/,/g) || []).length,
+      semi: (sample.match(/;/g) || []).length,
+      tab: (sample.match(/\t/g) || []).length,
+    };
+    const delim =
+      counts.semi > counts.comma && counts.semi > counts.tab
+        ? ";"
+        : counts.tab > counts.comma
+        ? "\t"
+        : ",";
+
+    const lines = text.split(/\r?\n/).filter((ln) => ln.trim().length > 0);
+    if (!lines.length) throw new Error("File kosong.");
+
+    const header = lines[0].split(delim).map((h) => h.trim().toLowerCase());
+    let idx = header.findIndex((h) => h === "namakelas" || h === "nama_kelas");
+    if (idx === -1)
+      idx = header.findIndex((h) => h.replace(/\s+/g, "") === "namakelas");
+    if (idx === -1) throw new Error("Header 'namaKelas' tidak ditemukan.");
+
+    const items = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(delim);
+      const nama = sanitizeNamaKelas(cols[idx]);
+      if (nama) items.push({ namaKelas: nama, __line: i + 1 });
+    }
+
+    const seen = new Set();
+    const out = [];
+    for (const it of items) {
+      const key = it.namaKelas.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        out.push(it);
+      }
+    }
+    return out;
   };
 
   // === FETCH LIST ===
@@ -81,13 +176,16 @@ export default function DaftarKelas() {
         method: "GET",
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          ...NGROK_HEADERS,
           Accept: "application/json",
+          ...NGROK_HEADERS,
         },
       });
-      if (!res.ok) throw new Error("Gagal memuat data kelas");
+      if (!res.ok) {
+        // tetap coba baca supaya dapat pesan error dari backend/ngrok page
+        await safeJson(res); // akan throw dengan cuplikan bila non-JSON
+      }
+      const payload = await safeJson(res);
 
-      const payload = await res.json();
       const list = Array.isArray(payload)
         ? payload
         : Array.isArray(payload?.data)
@@ -104,7 +202,10 @@ export default function DaftarKelas() {
     } catch (e) {
       if (myId !== reqRef.current) return;
       console.error(e);
-      setError(e?.message || "Gagal memuat data.");
+      setError(
+        e?.message ||
+          "Gagal memuat data. Pastikan URL API benar & endpoint mengembalikan JSON."
+      );
     } finally {
       if (myId === reqRef.current) setLoading(false);
     }
@@ -170,17 +271,19 @@ export default function DaftarKelas() {
         method: "GET",
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          ...NGROK_HEADERS,
           Accept: "application/json",
+          ...NGROK_HEADERS,
         },
       });
-      if (!res.ok) throw new Error("Gagal memuat detail kelas.");
-      const p = await res.json();
+      if (!res.ok) await safeJson(res);
+      const p = await safeJson(res);
       const nama = p?.namaKelas ?? p?.nama ?? p?.name ?? row.nama ?? "";
       setDetailData({ id: row.id, namaKelas: String(nama).trim() });
     } catch (e) {
       console.error(e);
-      setDetailError(e?.message || "Gagal memuat detail kelas.");
+      setDetailError(
+        e?.message || "Gagal memuat detail kelas (respons bukan JSON?)."
+      );
     } finally {
       setDetailLoading(false);
     }
@@ -191,7 +294,6 @@ export default function DaftarKelas() {
     setDetailError("");
     setDetailData(null);
   };
-  // klik luar & esc (modal detail)
   useEffect(() => {
     function onDown(e) {
       if (
@@ -211,38 +313,6 @@ export default function DaftarKelas() {
       window.removeEventListener("keydown", onKey);
     };
   }, [openDetail]);
-
-  // === TABLE ===
-  const columns = useMemo(
-    () => [
-      { key: "no", header: "#" },
-      { key: "nama", header: "Nama Kelas" },
-      {
-        key: "aksi",
-        header: "Aksi",
-        render: (_, row) => (
-          <button
-            type="button"
-            onClick={() => handleDelete(row)}
-            disabled={deletingId === row.id}
-            className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
-          >
-            {deletingId === row.id ? "Menghapus..." : "Hapus"}
-          </button>
-        ),
-      },
-    ],
-    [deletingId]
-  );
-
-  // === FILTERED DATA ===
-  const filtered = useMemo(() => {
-    const base = rows.filter((r) => {
-      if (!q) return true;
-      return (r.nama || "").toLowerCase().includes(q);
-    });
-    return base.map((r, i) => ({ no: i + 1, ...r }));
-  }, [rows, q]);
 
   // === FORM SUBMIT ===
   const handleSubmit = async (e) => {
@@ -268,13 +338,15 @@ export default function DaftarKelas() {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
             ...NGROK_HEADERS,
           },
-          body: JSON.stringify({ namaKelas: nama }),
+          body: JSON.stringify({
+            namaKelas: nama,
+            nama: nama,
+            nama_kelas: nama,
+          }),
         }
       );
-      if (!res.ok)
-        throw new Error(
-          isEditing ? "Gagal memperbarui kelas." : "Gagal menambahkan kelas."
-        );
+      if (!res.ok) await safeJson(res);
+      await safeJson(res);
       setSuccess(
         isEditing
           ? "Data kelas berhasil diperbarui."
@@ -284,7 +356,10 @@ export default function DaftarKelas() {
       fetchKelas();
     } catch (e2) {
       console.error(e2);
-      setError(e2?.message || "Gagal menyimpan data.");
+      setError(
+        e2?.message ||
+          "Gagal menyimpan data. Cek apakah endpoint menerima JSON dan membalas JSON."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -309,20 +384,139 @@ export default function DaftarKelas() {
           ...NGROK_HEADERS,
         },
       });
-      if (!res.ok) throw new Error("Gagal menghapus kelas.");
+      if (!res.ok) await safeJson(res);
+      await safeJson(res);
       setRows((prev) => prev.filter((r) => r.id !== row.id));
       setSuccess(`Kelas "${row.nama}" berhasil dihapus.`);
     } catch (e) {
       console.error(e);
-      setError(e?.message || "Gagal menghapus kelas.");
+      setError(
+        e?.message ||
+          "Gagal menghapus kelas. Pastikan endpoint DELETE benar dan membalas JSON."
+      );
     } finally {
       setDeletingId(null);
     }
   };
 
+  // === IMPORT CSV ===
+  const handleOpenImport = () => {
+    setOpenImport(true);
+    setImportErr("");
+    setImportOk("");
+    setImportStats({ total: 0, ok: 0, fail: 0 });
+    setImportFileName("");
+  };
+
+  const handleCloseImport = () => {
+    if (importBusy) return;
+    setOpenImport(false);
+    setImportErr("");
+    setImportOk("");
+    setImportStats({ total: 0, ok: 0, fail: 0 });
+    setImportFileName("");
+  };
+
+  const handleImportCsv = async (file) => {
+    if (!file) return;
+    setImportErr("");
+    setImportOk("");
+    setImportBusy(true);
+    setImportFileName(file.name);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const token = localStorage.getItem("token");
+      const res = await fetch(KELAS_API.BULK_ADD, {
+        method: "POST",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...NGROK_HEADERS,
+        },
+        body: formData,
+      });
+
+      if (!res.ok) await safeJson(res);
+      const data = await safeJson(res);
+
+      const ok = data?.ok ?? data?.success ?? data?.successCount ?? 0;
+      const fail =
+        data?.fail ??
+        data?.failed ??
+        data?.failCount ??
+        (Array.isArray(data?.errors) ? data.errors.length : 0) ??
+        0;
+      const skipped = data?.skipped ?? data?.duplicate ?? data?.skip ?? 0;
+      const total = data?.total ?? ok + fail + skipped;
+
+      setImportStats({ total, ok, fail });
+      setImportOk(
+        `Import selesai. Berhasil: ${ok}, Gagal: ${fail}${
+          skipped ? `, Di-skip: ${skipped}` : ""
+        }.`
+      );
+
+      if (Array.isArray(data?.errors) && data.errors.length) {
+        const lines = data.errors.slice(0, 6).map((e) => {
+          if (typeof e === "string") return e;
+          const ln = e.line ?? e.row ?? "-";
+          const nm = e.namaKelas ?? e.name ?? e.value ?? "";
+          const msg = e.message ?? e.error ?? "Gagal";
+          return `Baris ${ln}${nm ? ` ("${nm}")` : ""} → ${msg}`;
+        });
+        setImportErr(
+          lines.join("\n") +
+            (data.errors.length > 6
+              ? `\n…${data.errors.length - 6} baris lain gagal`
+              : "")
+        );
+      }
+
+      await fetchKelas();
+    } catch (e) {
+      console.error(e);
+      setImportErr(e?.message || "Gagal mengimpor CSV.");
+    } finally {
+      setImportBusy(false);
+    }
+  };
+
+  // === TABLE ===
+  const columns = useMemo(
+    () => [
+      { key: "no", header: "#" },
+      { key: "nama", header: "Nama Kelas" },
+      {
+        key: "aksi",
+        header: "Aksi",
+        render: (_, row) => (
+          <button
+            type="button"
+            onClick={() => handleDelete(row)}
+            disabled={deletingId === row.id}
+            className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
+          >
+            {deletingId === row.id ? "Menghapus..." : "Hapus"}
+          </button>
+        ),
+      },
+    ],
+    [deletingId]
+  );
+
+  const filtered = useMemo(() => {
+    const base = rows.filter((r) => {
+      if (!q) return true;
+      return (r.nama || "").toLowerCase().includes(q);
+    });
+    return base.map((r, i) => ({ no: i + 1, ...r }));
+  }, [rows, q]);
+
   // ========================== UI ==========================
   return (
-    <div className="lg:ml-56 lg:w-[calc(100vw-14rem)] w-full">
+    <div className="lg:ml-56 lg:w-[calc(100vw-14rem)] w-full mt-16 sm:mt-6">
       {/* Header */}
       <div className="pl-4 pr-2 lg:pr-0 pt-6 pb-3 flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -336,6 +530,13 @@ export default function DaftarKelas() {
             className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
           >
             + Tambah Kelas
+          </button>
+          <button
+            type="button"
+            onClick={handleOpenImport}
+            className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+          >
+            ⬆️ Import CSV
           </button>
           <button
             type="button"
@@ -418,6 +619,12 @@ export default function DaftarKelas() {
                     + Tambah Kelas
                   </button>
                   <button
+                    onClick={handleOpenImport}
+                    className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+                  >
+                    ⬆️ Import CSV
+                  </button>
+                  <button
                     onClick={fetchKelas}
                     disabled={loading}
                     className="rounded-xl bg-slate-700 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-600 disabled:opacity-60"
@@ -477,7 +684,7 @@ export default function DaftarKelas() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, namaKelas: e.target.value }))
                   }
-                  placeholder="Mis. IF-5 2025"
+                  placeholder="Mis. IF-5"
                   className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-600"
                   required
                 />
@@ -576,6 +783,130 @@ export default function DaftarKelas() {
               >
                 Tutup
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* === Modal Import CSV === */}
+      {openImport && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-import-title"
+          className="fixed inset-0 z-[120] flex items-center justify-center"
+        >
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="relative z-[121] w-full max-w-md rounded-2xl border border-white/10 bg-slate-900/95 p-5 shadow-2xl">
+            <div className="mb-3 flex items-center justify-between">
+              <h2
+                id="modal-import-title"
+                className="text-lg font-semibold text-white"
+              >
+                Import Kelas via CSV
+              </h2>
+              <button
+                type="button"
+                onClick={handleCloseImport}
+                disabled={importBusy}
+                className="rounded-md p-1 text-slate-300 hover:bg-slate-800 hover:text-white disabled:opacity-60"
+                aria-label="Tutup"
+                title="Tutup"
+              >
+                ✕
+              </button>
+            </div>
+
+            {!!importErr && (
+              <div className="mb-3 whitespace-pre-wrap rounded-lg border border-rose-400/30 bg-rose-500/15 px-3 py-2 text-sm text-rose-200">
+                {importErr}
+              </div>
+            )}
+            {!!importOk && (
+              <div className="mb-3 rounded-lg border border-emerald-400/30 bg-emerald-500/15 px-3 py-2 text-sm text-emerald-200">
+                {importOk}
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <div className="text-xs text-slate-400">
+                Gunakan file CSV dengan header <code>namaKelas</code>. Contoh:
+                <pre className="mt-2 rounded bg-slate-800 p-2 text-slate-200 text-xs overflow-auto">
+                  {`namaKelas
+IF-5
+IF-6`}
+                </pre>
+              </div>
+
+              <label className="block">
+                <span className="mb-1 block text-sm text-slate-300">
+                  Pilih file CSV
+                </span>
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  disabled={importBusy}
+                  onChange={(e) =>
+                    e.target.files?.[0] && handleImportCsv(e.target.files[0])
+                  }
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-700 file:px-3 file:py-2 file:text-sm file:text-white hover:file:bg-slate-600"
+                />
+                {importFileName && (
+                  <div className="mt-1 text-xs text-slate-400">
+                    {importFileName}
+                  </div>
+                )}
+              </label>
+
+              <div className="grid grid-cols-3 rounded-xl border border-slate-800 bg-slate-900">
+                <div className="p-3">
+                  <div className="text-xs text-slate-400">Total</div>
+                  <div className="text-white font-semibold">
+                    {importStats.total}
+                  </div>
+                </div>
+                <div className="p-3 border-l border-slate-800">
+                  <div className="text-xs text-emerald-300">Berhasil</div>
+                  <div className="text-emerald-200 font-semibold">
+                    {importStats.ok}
+                  </div>
+                </div>
+                <div className="p-3 border-l border-slate-800">
+                  <div className="text-xs text-rose-300">Gagal</div>
+                  <div className="text-rose-200 font-semibold">
+                    {importStats.fail}
+                  </div>
+                </div>
+              </div>
+
+              {importBusy && (
+                <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+                  <div
+                    className="h-2 bg-emerald-500 animate-pulse"
+                    style={{
+                      width:
+                        importStats.total > 0
+                          ? `${Math.round(
+                              ((importStats.ok + importStats.fail) /
+                                Math.max(1, importStats.total)) *
+                                100
+                            )}%`
+                          : "0%",
+                    }}
+                  />
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={handleCloseImport}
+                  disabled={importBusy}
+                  className="rounded-xl bg-slate-700 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-600 disabled:opacity-60"
+                >
+                  Tutup
+                </button>
+              </div>
             </div>
           </div>
         </div>

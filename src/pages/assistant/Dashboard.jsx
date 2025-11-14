@@ -2,7 +2,7 @@ import React from "react";
 
 export default function DashboardAsisten() {
   return (
-    <div className="relative min-h-[100dvh] w-full overflow-x-hidden">
+    <div className="relative min-h-[100dvh] w-full overflow-x-hidden mt-16 sm:mt-6">
       {/* === FULL BLACK BACKGROUND === */}
       <div className="fixed inset-0 -z-50 bg-black" />
 

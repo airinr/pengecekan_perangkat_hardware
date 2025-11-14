@@ -1,5 +1,4 @@
-# TODO: Tambahkan Dropdown di Menu Navbar Admin dan Halaman Jadwal Asisten
+# TODO: Change top padding to 10px on mobile for MerakitPc pages
 
-- [x] Edit src/components/NavbarAdmin.jsx: Tambahkan dropdown "Asisten" dengan submenu "Jadwal Asisten" (/jadwal_asisten) dan "Daftar Asisten" (/daftar_asisten), hapus NavLink langsung untuk Daftar Asisten.
-- [x] Buat file baru src/pages/admin/JadwalAsisten.jsx: Halaman untuk menampilkan jadwal asisten.
-- [x] Update routing di App.jsx jika perlu untuk /jadwal_asisten.
+- [x] Edit src/pages/assistant/lab609/MerakitPc.jsx: Change py-4 to pt-2.5 pb-4 in outer div
+- [x] Edit src/pages/assistant/lab610/MerakitPc.jsx: Change py-4 to pt-2.5 pb-4 in outer div

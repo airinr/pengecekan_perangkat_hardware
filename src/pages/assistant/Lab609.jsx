@@ -89,8 +89,7 @@ export default function Lab609() {
   };
 
   return (
-    <div className="mx-auto px-4 py-8 lg:ml-56">
-      {/* Wrapper pembatas lebar konten */}
+    <div className="mx-auto px-4 py-8 lg:ml-56 mt-16 sm:mt-6">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-2xl font-bold mb-2">Perangkat Laboratorium 609</h1>
         <p className="text-sm text-slate-300 mb-6">
@@ -98,49 +97,45 @@ export default function Lab609() {
           satu kategori di bawah untuk melanjutkan pengisian laporan.
         </p>
 
-        {/* Grid tombol-kotak: 3 atas, 1 bawah */}
+        {/* Grid 2x2: 2 di atas, 2 di bawah */}
         <div
           role="group"
           aria-label="Pilih kategori laporan"
-          className="grid grid-cols-1 lg:grid-cols-3 gap-4"
+          className="grid grid-cols-1 sm:grid-cols-2 gap-4 auto-rows-fr"
         >
-          {MENU_ITEMS.map((item, i) => {
-            const isLast = i === MENU_ITEMS.length - 1;
-            return (
-              <button
-                key={item.path}
-                type="button"
-                onClick={() => goNext(item.path)}
-                className={`group relative w-full rounded-xl border border-white/10 bg-slate-900/60 p-4 text-left text-white shadow-md transition
-                            hover:bg-slate-800/70 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 h-full
-                            ${isLast ? "lg:col-span-3 max-w-3xl mx-auto" : ""}`}
-                aria-label={`Buka ${item.title}`}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="text-blue-300 group-hover:text-blue-200">
-                    {item.icon}
+          {MENU_ITEMS.map((item) => (
+            <button
+              key={item.path}
+              type="button"
+              onClick={() => goNext(item.path)}
+              className="group relative w-full rounded-xl border border-white/10 bg-slate-900/60 p-4 text-left text-white shadow-md transition
+                         hover:bg-slate-800/70 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 h-full"
+              aria-label={`Buka ${item.title}`}
+            >
+              <div className="flex items-start gap-3">
+                <div className="text-blue-300 group-hover:text-blue-200">
+                  {item.icon}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-base font-semibold">{item.title}</h3>
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="h-5 w-5 opacity-70 transition group-hover:translate-x-0.5"
+                      fill="currentColor"
+                      aria-hidden
+                    >
+                      <path d="M13.5 4.5a1 1 0 011.7-.7l6 6a1 1 0 010 1.4l-6 6a1 1 0 01-1.4-1.4L18.59 12l-5.29-5.3a1 1 0 01-.3-.7zM3 12a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" />
+                    </svg>
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-base font-semibold">{item.title}</h3>
-                      <svg
-                        viewBox="0 0 24 24"
-                        className="h-5 w-5 opacity-70 transition group-hover:translate-x-0.5"
-                        fill="currentColor"
-                        aria-hidden
-                      >
-                        <path d="M13.5 4.5a1 1 0 011.7-.7l6 6a1 1 0 010 1.4l-6 6a1 1 0 01-1.4-1.4L18.59 12l-5.29-5.3a1 1 0 01-.3-.7zM3 12a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" />
-                      </svg>
-                    </div>
-                    <p className="mt-1 text-sm text-slate-300">{item.desc}</p>
-                    <div className="mt-3 inline-flex items-center rounded-md bg-blue-600/20 px-2 py-1 text-[11px] font-medium text-blue-200 ring-1 ring-inset ring-blue-400/30">
-                      Klik untuk melakukan pelaporan
-                    </div>
+                  <p className="mt-1 text-sm text-slate-300">{item.desc}</p>
+                  <div className="mt-3 inline-flex items-center rounded-md bg-blue-600/20 px-2 py-1 text-[11px] font-medium text-blue-200 ring-1 ring-inset ring-blue-400/30">
+                    Klik untuk melakukan pelaporan
                   </div>
                 </div>
-              </button>
-            );
-          })}
+              </div>
+            </button>
+          ))}
         </div>
       </div>
     </div>

@@ -39,16 +39,20 @@ export default function NavbarAdmin({
         }
       }
     } finally {
-      // Bersihkan jejak auth di client
+      // Bersihkan jejak auth di client (tanpa hard reload)
       try {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         sessionStorage.clear();
 
-        // Bersihkan cache PWA/Service Worker jika ada
+        // Bersihkan cache PWA/Service Worker jika ada (opsional)
         if ("caches" in window) {
-          const keys = await caches.keys();
-          await Promise.all(keys.map((k) => caches.delete(k)));
+          try {
+            const keys = await caches.keys();
+            await Promise.all(keys.map((k) => caches.delete(k)));
+          } catch {
+            // aman diabaikan
+          }
         }
 
         // Beri tahu tab lain untuk logout juga
@@ -56,13 +60,15 @@ export default function NavbarAdmin({
           const bc = new BroadcastChannel("auth");
           bc.postMessage({ type: "LOGOUT" });
           bc.close();
-        } catch {}
+        } catch {
+          // aman diabaikan
+        }
 
         // Navigasi ke halaman login & cegah back
         navigate("/login", { replace: true });
 
-        // Hard reload agar state memori betul-betul bersih
-        window.location.reload();
+        // ❌ JANGAN hard reload agar layout publik bisa muncul
+        // window.location.reload();
       } catch {
         // Fallback jika sesuatu gagal
         window.location.href = "/login";

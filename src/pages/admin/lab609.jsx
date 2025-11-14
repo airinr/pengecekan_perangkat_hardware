@@ -523,7 +523,7 @@ export default function Lab609() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 lg:ml-56">
+    <div className="container mx-auto px-4 py-8 lg:ml-56 mt-16 sm:mt-6">
       {/* ===== Pilih kategori untuk laporan ===== */}
       <label
         htmlFor="topik"

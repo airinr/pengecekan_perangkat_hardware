@@ -1,9 +1,21 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/images/logo_unikom.png";
 import gear_logo from "../assets/images/logo_landing.png";
 
 export default function Landing() {
+  const navigate = useNavigate();
+
+  const isLoggedIn = !!localStorage.getItem("token");
+  const goFeatures = (e) => {
+    e.preventDefault();
+    if (isLoggedIn) {
+      navigate("/features");
+    } else {
+      navigate("/login");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-700 via-blue-600 to-indigo-700 text-white relative overflow-hidden">
       {/* Decorative background blobs */}
@@ -11,31 +23,38 @@ export default function Landing() {
       <div className="pointer-events-none absolute -bottom-24 -right-24 h-96 w-96 rounded-full bg-cyan-300/20 blur-3xl" />
 
       {/* NAVBAR */}
-      <nav className="sticky top-0 z-10/20">
+      <nav className="sticky top-0 z-20">
         <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4">
           <Link to="/" className="flex items-center gap-2 group">
             <img
               src={logo}
+              alt="UNIKOM"
               className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white text-blue-600 font-extrabold shadow-md group-hover:scale-105 transition"
-            ></img>
+            />
             <span className="text-lg sm:text-xl font-semibold tracking-tight">
               AP2SC UNIKOM
             </span>
           </Link>
 
           <div className="hidden sm:flex items-center gap-4">
-            <Link
-              to="/features"
+            {/* Perangkat: cek login dulu */}
+            <a
+              href="/features"
+              onClick={goFeatures}
               className="hover:underline/50 underline-offset-4"
             >
               Perangkat
-            </Link>
-            <Link
-              to="/pricing"
+            </a>
+
+            {/* Kontak: ke Instagram */}
+            <a
+              href="https://www.instagram.com/ap2scunikom?igsh=YmFsNmlkZWY3emV4"
+              target="_blank"
+              rel="noopener noreferrer"
               className="hover:underline/50 underline-offset-4"
             >
               Kontak
-            </Link>
+            </a>
           </div>
 
           <div className="flex items-center gap-3">
@@ -60,7 +79,7 @@ export default function Landing() {
         <div className="grid lg:grid-cols-2 items-center gap-10">
           <div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight">
-              Selamat Datang
+              Selamat Datang{" "}
               <span className="text-cyan-200">Website Managemen</span> Perangkat
               Lab. Hardware
             </h1>
@@ -78,7 +97,7 @@ export default function Landing() {
           <div className="relative">
             <div className="mx-auto max-w-md lg:max-w-none">
               <div className="rounded-3xl bg-white/10 backdrop-blur-xl p-6 sm:p-8 shadow-2xl border border-white/10">
-                <img src={gear_logo}></img>
+                <img src={gear_logo} alt="AP2SC Gear" />
               </div>
             </div>
           </div>

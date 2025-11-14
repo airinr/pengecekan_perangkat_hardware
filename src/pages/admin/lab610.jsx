@@ -525,7 +525,7 @@ export default function Lab610() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 lg:ml-56">
+    <div className="container mx-auto px-4 py-8 lg:ml-56 mt-16 sm:mt-6">
       {/* ===== Pilih kategori untuk laporan ===== */}
       <label
         htmlFor="topik"
@@ -543,7 +543,7 @@ export default function Lab610() {
           const next = toUrl(path, kode, LAB_ID); // ?kode=...&lab=...
           navigate(next);
         }}
-        className="mb-6 block w-full appearance-none rounded-lg border border-white/15 bg-slate-900/60 px-3 lg:px-8 py-4 pr-10 text-sm md:text-base text-slate-100"
+        className="mb-6 block w-full appearance-none rounded-lg border border-white/15 bg-slate-900/60 px-3 lg:px-8 py-2 pr-10 text-sm md:text-base text-slate-100"
       >
         <option value="" disabled>
           Pilih kategori

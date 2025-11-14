@@ -1,3 +1,4 @@
+/* eslint-disable no-empty */
 /* eslint-disable no-unused-vars */
 /* eslint-disable no-undef */
 import React, { useState, useCallback, useEffect } from "react";
@@ -7,6 +8,40 @@ const DEFAULT_ITEMS = ["Flashdisk", "Komputer"];
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 const NGROK_HEADERS = { "ngrok-skip-browser-warning": "true" };
+
+// ====== TERJEMAHAN ERROR TEKNIS → BAHASA MANUSIA ======
+const humanizeError = (raw = "") => {
+  const t = String(raw || "").toLowerCase();
+
+  // Masalah jaringan/server umum
+  if (t.includes("failed to fetch") || t.includes("network"))
+    return "Tidak bisa terhubung ke server. Periksa koneksi internet Anda atau coba lagi sebentar lagi.";
+  if (t.includes("timeout"))
+    return "Server lambat merespons. Silakan coba kirim ulang.";
+  if (t.includes("unauthorized") || t.includes("401"))
+    return "Sesi login sudah habis atau tidak valid. Silakan login ulang.";
+  if (t.includes("403"))
+    return "Akses ditolak. Akun Anda belum punya izin untuk aksi ini.";
+  if (t.includes("404"))
+    return "Layanan atau data yang diminta tidak ditemukan.";
+  if (t.includes("413"))
+    return "File yang diunggah terlalu besar. Kompres/ perkecil lalu unggah lagi.";
+  if (t.includes("500"))
+    return "Ada masalah di sisi server. Coba beberapa saat lagi.";
+
+  // Validasi form (pakai kata kunci singkat biar mudah dipanggil)
+  if (t.includes("tanggal")) return "Tanggal wajib diisi.";
+  if (t.includes("iddosen") || t.includes("dosen"))
+    return "Pilih dosen terlebih dahulu.";
+  if (t.includes("idkelas") || t.includes("kelas"))
+    return "Pilih kelas terlebih dahulu.";
+  if (t.includes("waktu")) return "Isi waktu mulai (HH:MM) terlebih dahulu.";
+  if (t.includes("dataalat") || t.includes("idbarang"))
+    return "Isi minimal satu peralatan: cantumkan ID Barang dan Jumlah Akhir.";
+
+  // Fallback: tampilkan apa adanya kalau ada, atau default
+  return raw || "Terjadi kesalahan yang tidak diketahui.";
+};
 
 // helper: nama user dari localStorage
 const getCurrentUserName = () => {
@@ -27,7 +62,7 @@ const getTodayDate = () => {
   return `${yyyy}-${mm}-${dd}`;
 };
 
-// (opsional) jam sekarang HH:MM
+// jam sekarang HH:MM
 const getNowTime = () => {
   const d = new Date();
   const hh = String(d.getHours()).padStart(2, "0");
@@ -51,10 +86,10 @@ export default function FormTroubleShooting() {
   // ===== Header (pakai ID untuk dikirim ke backend) =====
   const [header, setHeader] = useState({
     tanggal: getTodayDate(),
-    idDosen: "", // ✅ kirim idDosen (mis. DSN00002)
-    idKelas: "", // ✅ kirim idKelas (mis. KLS00003)
+    idDosen: "",
+    idKelas: "",
     asisten: getCurrentUserName(),
-    waktuMulai: "", // UI HH:MM; saat submit diubah ke HH:MM:SS
+    waktuMulai: getNowTime(), // otomatis HH:MM saat form dibuka
     waktuSelesai: "",
   });
 
@@ -79,6 +114,8 @@ export default function FormTroubleShooting() {
   // ===== Foto praktikum =====
   const [fotoFile, setFotoFile] = useState(null);
   const [fotoPreview, setFotoPreview] = useState("");
+  const [showFotoAlert, setShowFotoAlert] = useState(false); // popup foto wajib
+
   const onPickFoto = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -95,6 +132,15 @@ export default function FormTroubleShooting() {
       prev.map((r) => (r.id === id ? { ...r, [key]: value } : r))
     );
   };
+
+  // ===== Popup Error (umum) =====
+  const [showError, setShowError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const openError = (msg) => {
+    setErrorMsg(humanizeError(msg));
+    setShowError(true);
+  };
+  const closeError = () => setShowError(false);
 
   // =========================
   // Prefill dari /datalab/getdatalab/{lab}
@@ -143,6 +189,7 @@ export default function FormTroubleShooting() {
     } catch (err) {
       console.error(err);
       setPrefillError(err?.message || "Gagal memuat data lab.");
+      openError(err?.message);
     } finally {
       setLoadingPrefill(false);
     }
@@ -194,7 +241,6 @@ export default function FormTroubleShooting() {
         : [];
       const parsed = list.map(parseDosen).filter((x) => x.id && x.label);
 
-      // unique by id + sort by label
       const uniqMap = new Map();
       parsed.forEach((x) => {
         if (!uniqMap.has(x.id)) uniqMap.set(x.id, x);
@@ -207,6 +253,7 @@ export default function FormTroubleShooting() {
       console.error(e);
       setDosenErr(e?.message || "Gagal memuat dosen.");
       setDosenOptions([]);
+      openError(e?.message);
     } finally {
       setDosenLoading(false);
     }
@@ -282,6 +329,7 @@ export default function FormTroubleShooting() {
         setKelasErr(e?.message || "Gagal memuat kelas dosen.");
         setKelasOptions([]);
         setHeader((h) => ({ ...h, idKelas: "" }));
+        openError(e?.message);
       } finally {
         setKelasLoading(false);
       }
@@ -315,15 +363,19 @@ export default function FormTroubleShooting() {
   const onSubmit = async (e) => {
     e.preventDefault();
 
-    if (!labCode) return alert("Kode lab (lab) tidak ditemukan di URL.");
+    if (!labCode) return openError("lab tidak ditemukan di url");
     if (!kodePraktikum)
-      return alert("Kode praktikum (kode) tidak ditemukan di URL.");
+      return openError("kode praktikum tidak ditemukan di url");
 
     // VALIDASI
-    if (!header.tanggal) return alert("Tanggal wajib diisi.");
-    if (!header.idDosen) return alert("Dosen (idDosen) wajib dipilih.");
-    if (!header.idKelas) return alert("Kelas (idKelas) wajib dipilih.");
-    if (!header.waktuMulai) return alert("Waktu (mulai) wajib diisi.");
+    if (!header.tanggal) return openError("tanggal");
+    if (!header.idDosen) return openError("idDosen");
+    if (!header.idKelas) return openError("idKelas");
+    if (!header.waktuMulai) return openError("waktu");
+    if (!fotoFile) {
+      setShowFotoAlert(true); // popup jika foto kosong
+      return;
+    }
 
     const dataAlat = rows
       .map((r) => ({
@@ -332,12 +384,7 @@ export default function FormTroubleShooting() {
       }))
       .filter((x) => x.idBarang);
 
-    if (dataAlat.length === 0) {
-      alert(
-        "Isi minimal 1 ID Barang (auto dari data lab) dan jumlah akhirnya."
-      );
-      return;
-    }
+    if (dataAlat.length === 0) return openError("dataAlat");
 
     // backend butuh HH:MM:SS
     const waktuWithSeconds =
@@ -367,8 +414,11 @@ export default function FormTroubleShooting() {
       );
 
       if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw new Error(text || "Gagal menyimpan laporan.");
+        let text = "";
+        try {
+          text = await res.text();
+        } catch {}
+        throw new Error(text || `HTTP ${res.status}`);
       }
 
       alert("Laporan praktikum berhasil dikirim.");
@@ -378,14 +428,14 @@ export default function FormTroubleShooting() {
       setRows((prev) => prev.map((r) => ({ ...r, akhir: "", kerusakan: "" })));
     } catch (err) {
       console.error(err);
-      alert(err?.message || "Gagal menyimpan laporan.");
+      openError(err?.message || "Gagal menyimpan laporan.");
     }
   };
 
   return (
     <form
       onSubmit={onSubmit}
-      className="min-h-screen text-slate-100 py-8 lg:ml-56"
+      className="min-h-screen text-slate-100 py-8 lg:ml-56 mt-16 sm:mt-6"
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <h1 className="text-2xl font-bold">Form Pengecekan Lab Hardware</h1>
@@ -449,7 +499,7 @@ export default function FormTroubleShooting() {
             </select>
           </div>
 
-          {/* Dosen (ID disembunyikan; dropdown tampil label) */}
+          {/* Dosen */}
           <div>
             <label className="block text-sm font-medium mb-1">Dosen</label>
             <select
@@ -483,7 +533,7 @@ export default function FormTroubleShooting() {
             )}
           </div>
 
-          {/* Kelas (ID disembunyikan; dropdown tampil label) */}
+          {/* Kelas */}
           <div>
             <label className="block text-sm font-medium mb-1">Kelas</label>
             <select
@@ -698,6 +748,94 @@ export default function FormTroubleShooting() {
           </button>
         </div>
       </div>
+
+      {/* === Popup Foto Wajib === */}
+      {showFotoAlert && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="foto-alert-title"
+        >
+          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-slate-900 p-5 shadow-xl">
+            <h2 id="foto-alert-title" className="text-base font-semibold">
+              Foto praktikum wajib diisi
+            </h2>
+            <p className="mt-2 text-sm text-slate-300">
+              Silakan unggah minimal 1 foto kegiatan praktikum sebelum menyimpan
+              laporan.
+            </p>
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowFotoAlert(false)}
+                className="rounded-xl px-4 py-2 text-sm ring-1 ring-slate-700 hover:bg-slate-800"
+              >
+                Oke
+              </button>
+              {/* <label className="rounded-xl px-4 py-2 text-sm bg-blue-600 text-white hover:opacity-90 cursor-pointer">
+                Unggah Foto
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={(e) => {
+                    setShowFotoAlert(false);
+                    onPickFoto(e);
+                  }}
+                  className="hidden"
+                />
+              </label> */}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* === Popup Error Umum === */}
+      {showError && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="error-modal-title"
+          onKeyDown={(e) => e.key === "Escape" && closeError()}
+        >
+          <div className="w-full max-w-md rounded-2xl border border-red-400/20 bg-slate-900 p-5 shadow-xl">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 text-red-300">
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-6 w-6"
+                  fill="currentColor"
+                  aria-hidden
+                >
+                  <path d="M12 2a10 10 0 1 0 .001 20.001A10 10 0 0 0 12 2Zm1 14h-2v-2h2v2Zm0-4h-2V6h2v6Z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3
+                  id="error-modal-title"
+                  className="text-base font-semibold text-red-200"
+                >
+                  Terjadi Kesalahan
+                </h3>
+                <p className="mt-1 text-sm text-slate-200 leading-relaxed">
+                  {errorMsg}
+                </p>
+                <div className="mt-4 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={closeError}
+                    className="rounded-xl px-3 py-1.5 text-sm font-medium ring-1 ring-slate-600 hover:bg-slate-800"
+                  >
+                    Tutup
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

@@ -1,3 +1,4 @@
+/* eslint-disable no-empty */
 /* eslint-disable no-unused-vars */
 /* eslint-disable no-undef */
 import React, { useState, useCallback, useEffect } from "react";
@@ -23,13 +24,21 @@ const getCurrentUserName = () => {
   }
 };
 
-// helper untuk tanggal hari ini (format YYYY-MM-DD)
+// helper tanggal (YYYY-MM-DD)
 const getTodayDate = () => {
   const today = new Date();
   const yyyy = today.getFullYear();
   const mm = String(today.getMonth() + 1).padStart(2, "0");
   const dd = String(today.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
+};
+
+// helper waktu (HH:MM)
+const getNowTimeHHMM = () => {
+  const t = new Date();
+  const hh = String(t.getHours()).padStart(2, "0");
+  const mm = String(t.getMinutes()).padStart(2, "0");
+  return `${hh}:${mm}`;
 };
 
 const LAB_NAMES = { LAB00001: "Lab 609", LAB00002: "Lab 610" };
@@ -40,8 +49,51 @@ const PRAKTIKUM_NAMES = {
   PRTK00004: "Troubleshooting",
 };
 
+// ===== Terjemahkan error teknis -> bahasa manusia =====
+const humanizeError = (raw = "") => {
+  const msg = String(raw || "").toLowerCase();
+
+  // jaringan/server umum
+  if (msg.includes("failed to fetch") || msg.includes("network"))
+    return "Tidak bisa terhubung ke server. Cek koneksi internet atau coba lagi sebentar lagi.";
+  if (msg.includes("timeout"))
+    return "Server lama merespons. Silakan coba kirim ulang.";
+  if (msg.includes("unauthorized") || msg.includes("401"))
+    return "Sesi login sudah habis atau tidak valid. Silakan login ulang.";
+  if (msg.includes("403"))
+    return "Akses ditolak. Akun Anda tidak punya izin untuk aksi ini.";
+  if (msg.includes("404"))
+    return "Layanan tidak ditemukan. Pastikan URL API sudah benar.";
+  if (msg.includes("413"))
+    return "File foto terlalu besar. Kompres/ perkecil foto lalu kirim lagi.";
+  if (msg.includes("500"))
+    return "Ada masalah di server. Coba beberapa saat lagi.";
+
+  // validasi form
+  if (msg.includes("tanggal")) return "Tanggal wajib diisi.";
+  if (msg.includes("iddosen") || msg.includes("dosen"))
+    return "Pilih dosen terlebih dahulu.";
+  if (msg.includes("idkelas") || msg.includes("kelas"))
+    return "Pilih kelas terlebih dahulu.";
+  if (msg.includes("waktu")) return "Isi waktu mulai (HH:MM) terlebih dahulu.";
+  if (msg.includes("dataalat") || msg.includes("idbarang"))
+    return "Isi minimal satu peralatan: ID Barang dan Jumlah Akhir.";
+
+  // ✅ terjemahan khusus error foto (frontend & backend)
+  if (
+    msg.includes("photopraktikum") ||
+    msg.includes("photo praktikum") ||
+    msg.includes("photo") ||
+    msg.includes("foto")
+  )
+    return "Foto wajib di isi. Silakan unggah dokumentasi praktikum terlebih dahulu.";
+
+  // fallback
+  return raw || "Terjadi kesalahan yang tidak diketahui.";
+};
+
 export default function FormJarkom() {
-  // Ambil dari query: ?kode=PRTK00003&lab=LAB00001 (contoh)
+  // Ambil dari query: ?kode=PRTK00003&lab=LAB00001
   const [searchParams] = useSearchParams();
   const labCode = searchParams.get("lab") || "";
   const kodePraktikum = searchParams.get("kode") || "";
@@ -49,14 +101,21 @@ export default function FormJarkom() {
   // ===== Header form =====
   const [header, setHeader] = useState({
     tanggal: getTodayDate(),
-    // kirim ID sesuai backend:
     idDosen: "",
     idKelas: "",
-    // tampilkan nama asisten
     asisten: getCurrentUserName(),
-    waktuMulai: "", // UI HH:MM (akan dikirim sebagai HH:MM:SS)
+    waktuMulai: getNowTimeHHMM(),
     waktuSelesai: "",
   });
+
+  // ====== State Popup Error ======
+  const [showError, setShowError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const openError = (msg) => {
+    setErrorMsg(humanizeError(msg));
+    setShowError(true);
+  };
+  const closeError = () => setShowError(false);
 
   // Tahun ajar & semester untuk filter kelas-by-dosen
   const [tahunAjar, setTahunAjar] = useState("2025");
@@ -148,6 +207,7 @@ export default function FormJarkom() {
     } catch (err) {
       console.error(err);
       setPrefillError(err?.message || "Gagal memuat data lab.");
+      openError(err?.message);
     } finally {
       setLoadingPrefill(false);
     }
@@ -210,6 +270,7 @@ export default function FormJarkom() {
       console.error(e);
       setDosenErr(e?.message || "Gagal memuat dosen.");
       setDosenOptions([]);
+      openError(e?.message);
     } finally {
       setDosenLoading(false);
     }
@@ -267,7 +328,6 @@ export default function FormJarkom() {
           : Array.isArray(payload?.kelas)
           ? payload.kelas
           : [];
-
         const parsed = list
           .map((k) => ({
             id: k?.idKelas || k?.kodeKelas || k?.id || "",
@@ -284,6 +344,7 @@ export default function FormJarkom() {
         setKelasErr(e?.message || "Gagal memuat kelas dosen.");
         setKelasOptions([]);
         setHeader((h) => ({ ...h, idKelas: "" }));
+        openError(e?.message);
       } finally {
         setKelasLoading(false);
       }
@@ -302,7 +363,7 @@ export default function FormJarkom() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [header.idDosen, tahunAjar, semester]);
 
-  // isi otomatis nama asisten
+  // isi otomatis nama asisten (sekali saat mount)
   useEffect(() => {
     const nm = getCurrentUserName();
     if (nm && !header.asisten) {
@@ -317,15 +378,18 @@ export default function FormJarkom() {
   const onSubmit = async (e) => {
     e.preventDefault();
 
-    if (!labCode) return alert("Kode lab (lab) tidak ditemukan di URL.");
+    if (!labCode) return openError("LAB tidak ditemukan di URL.");
     if (!kodePraktikum)
-      return alert("Kode praktikum (kode) tidak ditemukan di URL.");
+      return openError("KODE praktikum tidak ditemukan di URL.");
 
-    // VALIDASI sesuai endpoint addPraktikum
-    if (!header.tanggal) return alert("Tanggal wajib diisi.");
-    if (!header.idDosen) return alert("Dosen (idDosen) wajib dipilih.");
-    if (!header.idKelas) return alert("Kelas (idKelas) wajib dipilih.");
-    if (!header.waktuMulai) return alert("Waktu (mulai) wajib diisi.");
+    // VALIDASI -> tampilkan popup dalam bahasa manusia
+    if (!header.tanggal) return openError("tanggal");
+    if (!header.idDosen) return openError("dosen");
+    if (!header.idKelas) return openError("kelas");
+    if (!header.waktuMulai) return openError("waktu");
+
+    // ✅ Foto wajib diisi
+    if (!fotoFile) return openError("foto");
 
     const dataAlat = rows
       .map((r) => ({
@@ -334,10 +398,7 @@ export default function FormJarkom() {
       }))
       .filter((x) => x.idBarang);
 
-    if (dataAlat.length === 0) {
-      alert("Isi minimal 1 ID Barang (auto) dan jumlah akhirnya.");
-      return;
-    }
+    if (dataAlat.length === 0) return openError("dataAlat");
 
     // Backend butuh HH:MM:SS
     const waktuWithSeconds =
@@ -346,10 +407,10 @@ export default function FormJarkom() {
         : header.waktuMulai;
 
     const fd = new FormData();
-    fd.append("waktu", waktuWithSeconds); // HH:MM:SS
-    fd.append("idKelas", header.idKelas); // KLS000xx
+    fd.append("waktu", waktuWithSeconds);
+    fd.append("idKelas", header.idKelas);
     fd.append("tanggal", header.tanggal);
-    fd.append("idDosen", header.idDosen); // DSN000xx
+    fd.append("idDosen", header.idDosen);
     fd.append("tindakLanjut", tindakLanjut || "");
     fd.append("asisten", header.asisten || getCurrentUserName());
     if (fotoFile) fd.append("photoPraktikum", fotoFile);
@@ -367,8 +428,11 @@ export default function FormJarkom() {
       );
 
       if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw new Error(text || "Gagal menyimpan laporan.");
+        let text = "";
+        try {
+          text = await res.text();
+        } catch {}
+        throw new Error(text || `HTTP ${res.status}`);
       }
 
       alert("Laporan praktikum berhasil dikirim.");
@@ -378,327 +442,382 @@ export default function FormJarkom() {
       setRows((prev) => prev.map((r) => ({ ...r, akhir: "", kerusakan: "" })));
     } catch (err) {
       console.error(err);
-      alert(err?.message || "Gagal menyimpan laporan.");
+      openError(err?.message || "Gagal menyimpan laporan.");
     }
   };
 
   return (
-    <form
-      onSubmit={onSubmit}
-      className="min-h-screen text-slate-100 py-8 lg:ml-56 lg:pl-5"
-    >
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <h1 className="text-2xl font-bold">Form Pengecekan Lab Hardware</h1>
-        <p className="block text-sm font-medium mb-5">
-          Praktikum Jaringan Komputer —{" "}
-          <span className="opacity-80">
-            Lab: {LAB_NAMES[labCode] || labCode || "-"} | Praktikum:{" "}
-            {PRAKTIKUM_NAMES[kodePraktikum] || kodePraktikum || "-"}
-          </span>
-        </p>
+    <>
+      <form
+        onSubmit={onSubmit}
+        className="min-h-screen text-slate-100 py-8 lg:ml-56 lg:pl-5 mt-16 sm:mt-6"
+      >
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <h1 className="text-2xl font-bold">Form Pengecekan Lab Hardware</h1>
+          <p className="block text-sm font-medium mb-5">
+            Praktikum Jaringan Komputer —{" "}
+            <span className="opacity-80">
+              Lab: {LAB_NAMES[labCode] || labCode || "-"} | Praktikum:{" "}
+              {PRAKTIKUM_NAMES[kodePraktikum] || kodePraktikum || "-"}
+            </span>
+          </p>
 
-        {(loadingPrefill || prefillError) && (
-          <div className="mb-4 text-xs">
-            {loadingPrefill && (
-              <span className="text-slate-400">Memuat data awal dari lab…</span>
-            )}
-            {prefillError && (
-              <span className="text-red-300">Error: {prefillError}</span>
-            )}
-          </div>
-        )}
+          {(loadingPrefill || prefillError) && (
+            <div className="mb-4 text-xs">
+              {loadingPrefill && (
+                <span className="text-slate-400">
+                  Memuat data awal dari lab…
+                </span>
+              )}
+              {prefillError && (
+                <span className="text-red-300">Error: {prefillError}</span>
+              )}
+            </div>
+          )}
 
-        {/* Header form */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-          <div className="md:col-span-1">
-            <label className="block text-sm font-medium mb-1">
-              Hari / Tanggal
-            </label>
-            <input
-              type="date"
-              value={header.tanggal}
-              onChange={(e) =>
-                setHeader((h) => ({ ...h, tanggal: e.target.value }))
-              }
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 placeholder:text-slate-400 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-600"
-            />
-          </div>
+          {/* Header form */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+            <div className="md:col-span-1">
+              <label className="block text-sm font-medium mb-1">
+                Hari / Tanggal
+              </label>
+              <input
+                type="date"
+                value={header.tanggal}
+                onChange={(e) =>
+                  setHeader((h) => ({ ...h, tanggal: e.target.value }))
+                }
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 placeholder:text-slate-400 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-600"
+              />
+            </div>
 
-          {/* Tahun Ajar */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Tahun Ajar</label>
-            <input
-              type="text"
-              value={tahunAjar}
-              onChange={(e) => setTahunAjar(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-600"
-              placeholder="2025"
-            />
-          </div>
+            {/* Tahun Ajar */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Tahun Ajar
+              </label>
+              <input
+                type="text"
+                value={tahunAjar}
+                onChange={(e) => setTahunAjar(e.target.value)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-600"
+                placeholder="2025"
+              />
+            </div>
 
-          {/* Semester */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Semester</label>
-            <select
-              value={semester}
-              onChange={(e) => setSemester(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-600"
-            >
-              <option value="Ganjil">Ganjil</option>
-              <option value="Genap">Genap</option>
-            </select>
-          </div>
+            {/* Semester */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Semester</label>
+              <select
+                value={semester}
+                onChange={(e) => setSemester(e.target.value)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-600"
+              >
+                <option value="Ganjil">Ganjil</option>
+                <option value="Genap">Genap</option>
+              </select>
+            </div>
 
-          {/* Dosen (ID) */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Dosen</label>
-            <select
-              value={header.idDosen}
-              onChange={(e) =>
-                setHeader((h) => ({
-                  ...h,
-                  idDosen: e.target.value,
-                  idKelas: "",
-                }))
-              }
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-600"
-            >
-              <option value="">
-                {dosenLoading ? "Memuat dosen…" : "Pilih dosen…"}
-              </option>
-              {dosenOptions.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.label} ({d.id})
+            {/* Dosen (ID) */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Dosen</label>
+              <select
+                value={header.idDosen}
+                onChange={(e) =>
+                  setHeader((h) => ({
+                    ...h,
+                    idDosen: e.target.value,
+                    idKelas: "",
+                  }))
+                }
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-600"
+              >
+                <option value="">
+                  {dosenLoading ? "Memuat dosen…" : "Pilih dosen…"}
                 </option>
-              ))}
-            </select>
-            {(dosenErr || dosenLoading) && (
-              <p className="mt-1 text-[11px] text-slate-400">
-                {dosenErr ? (
-                  <span className="text-red-300">Error: {dosenErr}</span>
-                ) : (
-                  " "
-                )}
-              </p>
-            )}
-          </div>
+                {dosenOptions.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.label}
+                  </option>
+                ))}
+              </select>
+              {(dosenErr || dosenLoading) && (
+                <p className="mt-1 text-[11px] text-slate-400">
+                  {dosenErr ? (
+                    <span className="text-red-300">Error: {dosenErr}</span>
+                  ) : (
+                    " "
+                  )}
+                </p>
+              )}
+            </div>
 
-          {/* Kelas (ID) */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Kelas</label>
-            <select
-              value={header.idKelas}
-              onChange={(e) =>
-                setHeader((h) => ({ ...h, idKelas: e.target.value }))
-              }
-              disabled={!header.idDosen}
-              className={`w-full rounded-lg border ${
-                header.idDosen
-                  ? "border-slate-700"
-                  : "border-slate-800 opacity-60"
-              } bg-slate-900 text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-600`}
-            >
-              <option value="">
-                {!header.idDosen
-                  ? "Pilih dosen dulu"
-                  : kelasLoading
-                  ? "Memuat kelas…"
-                  : "Pilih kelas…"}
-              </option>
-              {kelasOptions.map((k) => (
-                <option key={k.id} value={k.id}>
-                  {k.label} ({k.id})
+            {/* Kelas (ID) */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Kelas</label>
+              <select
+                value={header.idKelas}
+                onChange={(e) =>
+                  setHeader((h) => ({ ...h, idKelas: e.target.value }))
+                }
+                disabled={!header.idDosen}
+                className={`w-full rounded-lg border ${
+                  header.idDosen
+                    ? "border-slate-700"
+                    : "border-slate-800 opacity-60"
+                } bg-slate-900 text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-600`}
+              >
+                <option value="">
+                  {!header.idDosen
+                    ? "Pilih dosen dulu"
+                    : kelasLoading
+                    ? "Memuat kelas…"
+                    : "Pilih kelas…"}
                 </option>
-              ))}
-            </select>
-            {(kelasErr || kelasLoading) && (
-              <p className="mt-1 text-[11px]">
-                {kelasErr ? (
-                  <span className="text-red-300">Error: {kelasErr}</span>
-                ) : (
-                  " "
-                )}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Asisten & Waktu */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div>
-            <label className="block text-sm font-medium mb-1">Asisten</label>
-            <input
-              type="text"
-              value={header.asisten}
-              readOnly
-              title="Diisi otomatis dari akun yang login"
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 placeholder:text-slate-400 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-600"
-              placeholder="Nama asisten (otomatis)"
-            />
+                {kelasOptions.map((k) => (
+                  <option key={k.id} value={k.id}>
+                    {k.label}
+                  </option>
+                ))}
+              </select>
+              {(kelasErr || kelasLoading) && (
+                <p className="mt-1 text-[11px]">
+                  {kelasErr ? (
+                    <span className="text-red-300">Error: {kelasErr}</span>
+                  ) : (
+                    " "
+                  )}
+                </p>
+              )}
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Waktu (mulai)
-            </label>
-            <input
-              type="time"
-              value={header.waktuMulai}
-              onChange={(e) =>
-                setHeader((h) => ({ ...h, waktuMulai: e.target.value }))
-              }
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-600"
-            />
+          {/* Asisten & Waktu */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div>
+              <label className="block text-sm font-medium mb-1">Asisten</label>
+              <input
+                type="text"
+                value={header.asisten}
+                readOnly
+                title="Diisi otomatis dari akun yang login"
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 placeholder:text-slate-400 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-600"
+                placeholder="Nama asisten (otomatis)"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Waktu (mulai)
+              </label>
+              <input
+                type="time"
+                value={header.waktuMulai}
+                onChange={(e) =>
+                  setHeader((h) => ({ ...h, waktuMulai: e.target.value }))
+                }
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-600"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Waktu selesai
+              </label>
+              <input
+                type="time"
+                value={header.waktuSelesai}
+                onChange={(e) =>
+                  setHeader((h) => ({ ...h, waktuSelesai: e.target.value }))
+                }
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-600"
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Waktu selesai
-            </label>
-            <input
-              type="time"
-              value={header.waktuSelesai}
-              onChange={(e) =>
-                setHeader((h) => ({ ...h, waktuSelesai: e.target.value }))
-              }
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-600"
-            />
-          </div>
-        </div>
-
-        {/* Tabel Kelengkapan */}
-        <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900 shadow-sm">
-          <table className="min-w-full text-sm">
-            <thead className="bg-slate-800">
-              <tr className="text-left">
-                <th className="px-4 py-3 w-12 text-slate-200">No</th>
-                <th className="px-4 py-3 text-slate-200">Kelengkapan</th>
-                <th className="px-4 py-3 w-40 text-slate-200">
-                  ID Barang (BRNG…)
-                </th>
-                <th className="px-4 py-3 w-36 text-slate-200">Jumlah Awal</th>
-                <th className="px-4 py-3 w-36 text-slate-200">Jumlah Akhir</th>
-                <th className="px-4 py-3 w-64 text-slate-200">Kerusakan</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, idx) => (
-                <tr key={r.id} className="border-t border-slate-800">
-                  <td className="px-4 py-2">{idx + 1}</td>
-                  <td className="px-4 py-2">{r.name}</td>
-                  <td className="px-4 py-2">
-                    <input
-                      type="text"
-                      value={r.idBarang}
-                      onChange={(e) =>
-                        handleRowChange(r.id, "idBarang", e.target.value)
-                      }
-                      className="w-full rounded-md border border-slate-700 bg-slate-950 text-slate-100 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-slate-600"
-                      placeholder="BRNG00011"
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <input
-                      type="number"
-                      min={0}
-                      value={r.awal}
-                      onChange={(e) =>
-                        handleRowChange(r.id, "awal", e.target.value)
-                      }
-                      className="w-full rounded-md border border-slate-700 bg-slate-950 text-slate-100 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-slate-600"
-                      placeholder="auto dari jumlahNormal"
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <input
-                      type="number"
-                      min={0}
-                      value={r.akhir}
-                      onChange={(e) =>
-                        handleRowChange(r.id, "akhir", e.target.value)
-                      }
-                      className="w-full rounded-md border border-slate-700 bg-slate-950 text-slate-100 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-slate-600"
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <input
-                      type="text"
-                      value={r.kerusakan}
-                      onChange={(e) =>
-                        handleRowChange(r.id, "kerusakan", e.target.value)
-                      }
-                      className="w-full rounded-md border border-slate-700 bg-slate-950 text-slate-100 placeholder:text-slate-400 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-slate-600"
-                      placeholder="cth: LAN Tester error"
-                    />
-                  </td>
+          {/* Tabel Kelengkapan */}
+          <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900 shadow-sm">
+            <table className="min-w-full text-sm">
+              <thead className="bg-slate-800">
+                <tr className="text-left">
+                  <th className="px-4 py-3 w-12 text-slate-200">No</th>
+                  <th className="px-4 py-3 text-slate-200">Kelengkapan</th>
+                  <th className="px-4 py-3 w-40 text-slate-200">
+                    ID Barang (BRNG…)
+                  </th>
+                  <th className="px-4 py-3 w-36 text-slate-200">Jumlah Awal</th>
+                  <th className="px-4 py-3 w-36 text-slate-200">
+                    Jumlah Akhir
+                  </th>
+                  <th className="px-4 py-3 w-64 text-slate-200">Kerusakan</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Tindak lanjut & Foto */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Tindak lanjut
-            </label>
-            <textarea
-              rows={4}
-              value={tindakLanjut}
-              onChange={(e) => setTindakLanjut(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 placeholder:text-slate-400 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-600"
-              placeholder="Rencana perbaikan / penggantian…"
-            />
+              </thead>
+              <tbody>
+                {rows.map((r, idx) => (
+                  <tr key={r.id} className="border-t border-slate-800">
+                    <td className="px-4 py-2">{idx + 1}</td>
+                    <td className="px-4 py-2">{r.name}</td>
+                    <td className="px-4 py-2">
+                      <input
+                        type="text"
+                        value={r.idBarang}
+                        onChange={(e) =>
+                          handleRowChange(r.id, "idBarang", e.target.value)
+                        }
+                        className="w-full rounded-md border border-slate-700 bg-slate-950 text-slate-100 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-slate-600"
+                        placeholder="BRNG00011"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <input
+                        type="number"
+                        min={0}
+                        value={r.awal}
+                        onChange={(e) =>
+                          handleRowChange(r.id, "awal", e.target.value)
+                        }
+                        className="w-full rounded-md border border-slate-700 bg-slate-950 text-slate-100 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-slate-600"
+                        placeholder="auto dari jumlahNormal"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <input
+                        type="number"
+                        min={0}
+                        value={r.akhir}
+                        onChange={(e) =>
+                          handleRowChange(r.id, "akhir", e.target.value)
+                        }
+                        className="w-full rounded-md border border-slate-700 bg-slate-950 text-slate-100 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-slate-600"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <input
+                        type="text"
+                        value={r.kerusakan}
+                        onChange={(e) =>
+                          handleRowChange(r.id, "kerusakan", e.target.value)
+                        }
+                        className="w-full rounded-md border border-slate-700 bg-slate-950 text-slate-100 placeholder:text-slate-400 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-slate-600"
+                        placeholder="cth: LAN Tester error"
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Foto Praktikum
-            </label>
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={onPickFoto}
-              className="block w-full text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-slate-800 file:px-3 file:py-2 file:text-slate-100
-                         file:hover:bg-slate-700 hover:cursor-pointer text-slate-300"
-            />
-            {fotoPreview && (
-              <div className="mt-3">
-                <div className="text-xs text-slate-400 mb-1">Preview:</div>
-                <img
-                  src={fotoPreview}
-                  alt="Preview"
-                  className="h-40 w-auto rounded-lg border border-slate-800 object-contain bg-slate-900"
-                />
-                <div className="mt-2 flex gap-2">
+          {/* Tindak lanjut & Foto */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Tindak lanjut
+              </label>
+              <textarea
+                rows={4}
+                value={tindakLanjut}
+                onChange={(e) => setTindakLanjut(e.target.value)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 placeholder:text-slate-400 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-600"
+                placeholder="Rencana perbaikan / penggantian…"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Foto Praktikum
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={onPickFoto}
+                className="block w-full text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-slate-800 file:px-3 file:py-2 file:text-slate-100
+                           file:hover:bg-slate-700 hover:cursor-pointer text-slate-300"
+              />
+              {fotoPreview && (
+                <div className="mt-3">
+                  <div className="text-xs text-slate-400 mb-1">Preview:</div>
+                  <img
+                    src={fotoPreview}
+                    alt="Preview"
+                    className="h-40 w-auto rounded-lg border border-slate-800 object-contain bg-slate-900"
+                  />
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={clearFoto}
+                      className="rounded-2xl px-3 py-1.5 text-xs font-medium ring-1 ring-slate-700 hover:bg-slate-900"
+                    >
+                      Hapus Foto
+                    </button>
+                  </div>
+                </div>
+              )}
+              <p className="mt-2 text-xs text-slate-400">
+                Field dikirim sebagai <code>photoPraktikum</code> (multipart).
+              </p>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="mt-8 flex items-center gap-3">
+            <button
+              type="submit"
+              className="rounded-2xl px-5 py-2.5 text-sm font-medium shadow-sm bg-white text-slate-900 hover:opacity-90"
+            >
+              Simpan
+            </button>
+          </div>
+        </div>
+      </form>
+
+      {/* ===== Error Modal ===== */}
+      {showError && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          onKeyDown={(e) => e.key === "Escape" && closeError()}
+        >
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={closeError}
+            aria-hidden
+          />
+          <div className="relative w-full max-w-md rounded-2xl border border-red-400/20 bg-slate-900 p-5 shadow-xl">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 text-red-300">
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-6 w-6"
+                  fill="currentColor"
+                  aria-hidden
+                >
+                  <path d="M12 2a10 10 0 1 0 .001 20.001A10 10 0 0 0 12 2Zm1 14h-2v-2h2v2Zm0-4h-2V6h2v6Z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-semibold text-red-200">
+                  Terjadi Kesalahan
+                </h3>
+                <p className="mt-1 text-sm text-slate-200 leading-relaxed">
+                  {errorMsg}
+                </p>
+                <div className="mt-4 flex justify-end gap-2">
                   <button
                     type="button"
-                    onClick={clearFoto}
-                    className="rounded-2xl px-3 py-1.5 text-xs font-medium ring-1 ring-slate-700 hover:bg-slate-900"
+                    onClick={closeError}
+                    className="rounded-xl px-3 py-1.5 text-sm font-medium ring-1 ring-slate-600 hover:bg-slate-800"
                   >
-                    Hapus Foto
+                    Tutup
                   </button>
                 </div>
               </div>
-            )}
-            <p className="mt-2 text-xs text-slate-400">
-              Field dikirim sebagai <code>photoPraktikum</code> (multipart).
-            </p>
+            </div>
           </div>
         </div>
-
-        {/* Actions */}
-        <div className="mt-8 flex items-center gap-3">
-          <button
-            type="submit"
-            className="rounded-2xl px-5 py-2.5 text-sm font-medium shadow-sm bg-white text-slate-900 hover:opacity-90"
-          >
-            Simpan
-          </button>
-        </div>
-      </div>
-    </form>
+      )}
+    </>
   );
 }

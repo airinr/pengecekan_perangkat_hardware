@@ -1,5 +1,6 @@
+/* eslint-disable no-empty */
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/images/logo_unikom.ico";
 
 export default function Register() {
@@ -10,6 +11,11 @@ export default function Register() {
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // === NEW: popup sukses ===
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,11 +28,33 @@ export default function Register() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, nama, nim, password }),
       });
-      if (!res.ok)
-        throw new Error((await res.json())?.message || "Register gagal");
-      // sukses -> arahkan ke login / tampilkan toast sesuai kebutuhan
+
+      if (!res.ok) {
+        // coba ambil pesan backend → terjemahkan singkat
+        let msg = "Register gagal.";
+        try {
+          const j = await res.json();
+          if (j?.message) msg = j.message;
+        } catch {}
+        throw new Error(msg);
+      }
+
+      // === NEW: Tampilkan popup sukses ===
+      setShowSuccess(true);
+
+      // Optional: bersihkan form
+      setNim("");
+      setEmail("");
+      setNama("");
+      setPassword("");
     } catch (err) {
-      setError("Register gagal.");
+      setError(
+        err?.message?.toLowerCase().includes("nim")
+          ? "Register gagal: NIM tidak valid atau sudah terdaftar."
+          : err?.message?.toLowerCase().includes("email")
+          ? "Register gagal: Email tidak valid atau sudah terdaftar."
+          : "Register gagal. Silakan periksa data Anda dan coba lagi."
+      );
       console.log(err);
     } finally {
       setLoading(false);
@@ -229,6 +257,56 @@ export default function Register() {
           AP2SC UNIKOM
         </p>
       </main>
+
+      {/* === NEW: POPUP SUKSES REGISTER === */}
+      {showSuccess && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="register-success-title"
+        >
+          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white p-6 shadow-2xl">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-green-100 text-green-700 grid place-items-center">
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-6 w-6"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              </div>
+              <h3
+                id="register-success-title"
+                className="text-lg font-semibold text-gray-900"
+              >
+                Registrasi Berhasil
+              </h3>
+            </div>
+
+            <p className="mt-3 text-sm text-gray-700">
+              Sudah register, mohon tunggu akun anda diaktifkan oleh admin.
+            </p>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSuccess(false);
+                  // Arahkan ke login
+                  navigate("/login", { replace: true });
+                }}
+                className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

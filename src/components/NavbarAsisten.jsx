@@ -4,7 +4,7 @@ import { useRole } from "../contexts/RoleContext";
 
 export default function NavbarAsisten({
   logoSrc = "/assets/images/logo_unikom.ico",
-  appName = "Perangkat AP2SC",
+  appName = "Asisten AP2SC",
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const toggleMenu = useCallback(() => setIsOpen((v) => !v), []);

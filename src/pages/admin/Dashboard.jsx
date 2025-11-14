@@ -42,7 +42,7 @@ export default function DashboardAdmin() {
     "https://i.pinimg.com/736x/00/00/00/000000000000000000000000000000.jpg";
 
   return (
-    <div className="relative min-h-screen w-screen overflow-hidden">
+    <div className="relative min-h-screen w-screen overflow-hidden mt-16 sm:mt-6">
       {/* Background */}
       <div className="fixed inset-0 -z-10 bg-black">
         <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" />
