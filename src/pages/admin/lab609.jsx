@@ -219,7 +219,7 @@ export default function Lab609() {
         const jumlahNormal = Number(item?.jumlahNormal ?? 0);
         const jumlahRusak = Number(item?.jumlahRusak ?? 0);
         const jumlah =
-          (Number.isFinite(jumlahNormal) ? jumlahNormal : 0) +
+          (Number.isFinite(jumlahNormal) ? jumlahNormal : 0) -
           (Number.isFinite(jumlahRusak) ? jumlahRusak : 0);
         const status = jumlahRusak > 0 ? STATUS_INCOMPLETE : STATUS_COMPLETE;
 
@@ -396,8 +396,6 @@ export default function Lab609() {
   const markResolved = async (row) => {
     const jn = Number(row.jumlahNormal ?? 0);
     const jr = Number(row.jumlahRusak ?? 0);
-    const newNormal =
-      (Number.isFinite(jn) ? jn : 0) + (Number.isFinite(jr) ? jr : 0);
     const newRusak = 0;
 
     setRows((prev) =>
@@ -405,9 +403,7 @@ export default function Lab609() {
         r.id === row.id
           ? {
               ...r,
-              jumlahNormal: newNormal,
               jumlahRusak: newRusak,
-              jumlah: newNormal,
               status: STATUS_COMPLETE,
             }
           : r
@@ -428,7 +424,6 @@ export default function Lab609() {
         body: JSON.stringify([
           {
             idBarang: row.idBarang,
-            jumlahNormal: newNormal,
             jumlahRusak: newRusak,
           },
         ]),

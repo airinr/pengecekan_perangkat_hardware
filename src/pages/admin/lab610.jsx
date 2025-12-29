@@ -202,7 +202,7 @@ export default function Lab610() {
         const jumlahNormal = Number(item?.jumlahNormal ?? 0);
         const jumlahRusak = Number(item?.jumlahRusak ?? 0);
         const jumlah =
-          (Number.isFinite(jumlahNormal) ? jumlahNormal : 0) +
+          (Number.isFinite(jumlahNormal) ? jumlahNormal : 0) -
           (Number.isFinite(jumlahRusak) ? jumlahRusak : 0);
         const status = jumlahRusak > 0 ? STATUS_INCOMPLETE : STATUS_COMPLETE;
         return {
