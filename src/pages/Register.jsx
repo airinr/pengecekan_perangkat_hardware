@@ -12,8 +12,30 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // === NEW: popup sukses ===
+  // === popup sukses ===
   const [showSuccess, setShowSuccess] = useState(false);
+
+  // === NEW: popup error validasi ===
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [errorPopupMsg, setErrorPopupMsg] = useState("");
+
+  const openErrorPopup = (msg) => {
+    setErrorPopupMsg(msg);
+    setShowErrorPopup(true);
+  };
+
+  // Validasi helper
+  const isValidMahasiswaEmail = (value) =>
+    /^[^\s@]+@mahasiswa\.unikom\.ac\.id$/i.test((value || "").trim());
+
+  const isValidPassword = (value) => /[A-Z]/.test(value) && /\d/.test(value);
+
+  const passwordHint =
+    password.length === 0
+      ? ""
+      : isValidPassword(password)
+      ? ""
+      : "Password harus mengandung minimal 1 huruf besar dan 1 angka.";
 
   const navigate = useNavigate();
 
@@ -21,6 +43,43 @@ export default function Register() {
     e.preventDefault();
     setError("");
     setLoading(true);
+
+    // === VALIDASI FRONTEND ===
+    // 1) NIM harus tepat 8 digit, numerik sudah dijaga di onChange
+    if (nim.length !== 8) {
+      setLoading(false);
+      openErrorPopup("NIM harus tepat 8 digit.");
+      return;
+    }
+
+    // 2) Email harus domain mahasiswa
+    if (!isValidMahasiswaEmail(email)) {
+      setLoading(false);
+      openErrorPopup("Gunakan email mahasiswa (@mahasiswa.unikom.ac.id).");
+      return;
+    }
+
+    // 3) Password harus ada 1 huruf besar & 1 angka
+    if (!isValidPassword(password)) {
+      setLoading(false);
+      openErrorPopup(
+        "Password wajib mengandung minimal 1 huruf besar dan 1 angka."
+      );
+      return;
+    }
+
+    //4) Nama 30 har
+    if (nama.trim().length === 0) {
+      setLoading(false);
+      openErrorPopup("Nama wajib diisi.");
+      return;
+    }
+    if (nama.length > 30) {
+      setLoading(false);
+      openErrorPopup("Nama tidak boleh lebih dari 30 karakter.");
+      return;
+    }
+
     try {
       const API_BASE = import.meta.env.VITE_API_URL || "";
       const res = await fetch(`${API_BASE}/auth/register`, {
@@ -30,7 +89,6 @@ export default function Register() {
       });
 
       if (!res.ok) {
-        // coba ambil pesan backend → terjemahkan singkat
         let msg = "Register gagal.";
         try {
           const j = await res.json();
@@ -39,7 +97,7 @@ export default function Register() {
         throw new Error(msg);
       }
 
-      // === NEW: Tampilkan popup sukses ===
+      // === Tampilkan popup sukses ===
       setShowSuccess(true);
 
       // Optional: bersihkan form
@@ -100,11 +158,26 @@ export default function Register() {
                 inputMode="numeric"
                 pattern="[0-9]*"
                 value={nim}
-                onChange={(e) => setNim(e.target.value)}
+                onChange={(e) => {
+                  // hanya angka
+                  const onlyDigits = e.target.value.replace(/\D/g, "");
+
+                  // max 8 digit (kalau lebih -> popup)
+                  if (onlyDigits.length > 8) {
+                    openErrorPopup("Tidak boleh lebih dari 8 digit.");
+                    return;
+                  }
+
+                  setNim(onlyDigits);
+                }}
+                maxLength={8}
                 required
                 className="mt-1 block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-3 py-2 shadow-sm"
-                placeholder="Contoh: 1012345678"
+                placeholder="Contoh: 10123194"
               />
+              <p className="mt-1 text-[11px] text-gray-500">
+                NIM harus 8 digit angka.
+              </p>
             </div>
 
             {/* Nama */}
@@ -120,11 +193,24 @@ export default function Register() {
                 type="text"
                 autoComplete="name"
                 value={nama}
-                onChange={(e) => setNama(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+
+                  if (val.length > 30) {
+                    openErrorPopup("Nama tidak boleh lebih dari 30 karakter.");
+                    return;
+                  }
+
+                  setNama(val);
+                }}
+                maxLength={30}
                 required
                 className="mt-1 block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-3 py-2 shadow-sm"
                 placeholder="Nama lengkap"
               />
+              <p className="mt-1 text-[11px] text-gray-500">
+                Maksimal 30 karakter.
+              </p>
             </div>
 
             {/* Email */}
@@ -141,10 +227,20 @@ export default function Register() {
                 autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onBlur={() => {
+                  if (email && !isValidMahasiswaEmail(email)) {
+                    openErrorPopup(
+                      "Gunakan email mahasiswa (@mahasiswa.unikom.ac.id)."
+                    );
+                  }
+                }}
                 required
                 className="mt-1 block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-3 py-2 shadow-sm"
-                placeholder="you@example.com"
+                placeholder="nama@mahasiswa.unikom.ac.id"
               />
+              <p className="mt-1 text-[11px] text-gray-500">
+                Wajib menggunakan domain @mahasiswa.unikom.ac.id
+              </p>
             </div>
 
             {/* Password */}
@@ -199,6 +295,16 @@ export default function Register() {
                   )}
                 </button>
               </div>
+
+              {/* ✅ Hint password */}
+              {passwordHint && (
+                <p className="mt-1 text-xs text-red-600">{passwordHint}</p>
+              )}
+              {!passwordHint && password.length > 0 && (
+                <p className="mt-1 text-xs text-green-600">
+                  Password sudah memenuhi syarat.
+                </p>
+              )}
             </div>
 
             {/* Submit */}
@@ -258,7 +364,53 @@ export default function Register() {
         </p>
       </main>
 
-      {/* === NEW: POPUP SUKSES REGISTER === */}
+      {/* === POPUP ERROR VALIDASI === */}
+      {showErrorPopup && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="register-error-title"
+        >
+          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white p-6 shadow-2xl">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-red-100 text-red-700 grid place-items-center">
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-6 w-6"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M12 9v4" />
+                  <path d="M12 17h.01" />
+                  <path d="M10.3 3.9h3.4L22 20H2L10.3 3.9z" />
+                </svg>
+              </div>
+              <h3
+                id="register-error-title"
+                className="text-lg font-semibold text-gray-900"
+              >
+                Validasi Gagal
+              </h3>
+            </div>
+
+            <p className="mt-3 text-sm text-gray-700">{errorPopupMsg}</p>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowErrorPopup(false)}
+                className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* === POPUP SUKSES REGISTER === */}
       {showSuccess && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
@@ -296,7 +448,6 @@ export default function Register() {
                 type="button"
                 onClick={() => {
                   setShowSuccess(false);
-                  // Arahkan ke login
                   navigate("/login", { replace: true });
                 }}
                 className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"

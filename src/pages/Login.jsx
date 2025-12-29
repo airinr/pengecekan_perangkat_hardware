@@ -6,8 +6,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useRole } from "../contexts/RoleContext";
 import logo from "../assets/images/logo_unikom.ico";
 
-/** ========== Popup Komponen ========== */
-function ErrorPopup({ open, title, message, detail, onClose }) {
+/** ========== Popup Komponen (TANPA detail teknis) ========== */
+function ErrorPopup({ open, title, message, onClose }) {
   const closeBtnRef = useRef(null);
 
   useEffect(() => {
@@ -50,23 +50,13 @@ function ErrorPopup({ open, title, message, detail, onClose }) {
             {title || "Terjadi Kesalahan"}
           </h3>
         </div>
+
         <div className="px-5 pt-4 pb-2">
           <p id="popup-desc" className="text-sm text-gray-700">
             {message || "Maaf, ada kendala saat memproses permintaan Anda."}
           </p>
-          {detail ? (
-            <div className="mt-3">
-              <details className="text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-md p-3">
-                <summary className="cursor-pointer select-none font-medium">
-                  Detail teknis
-                </summary>
-                <pre className="mt-2 whitespace-pre-wrap break-words">
-                  {String(detail).slice(0, 2000)}
-                </pre>
-              </details>
-            </div>
-          ) : null}
         </div>
+
         <div className="px-5 pb-4 pt-2 flex justify-end gap-2">
           <button
             ref={closeBtnRef}
@@ -80,69 +70,6 @@ function ErrorPopup({ open, title, message, detail, onClose }) {
       </div>
     </div>
   );
-}
-
-/** ========== Util: mapping error ramah pengguna ========== */
-function friendlyError(
-  err,
-  { phase = "login", status, rawBody, fromApi = false } = {}
-) {
-  const offline =
-    typeof navigator !== "undefined" && navigator && navigator.onLine === false;
-
-  if (offline) {
-    return {
-      title: "Tidak Ada Koneksi Internet",
-      message:
-        "Periksa koneksi internet Anda lalu coba lagi. Jika menggunakan Wi-Fi kampus/VPN, pastikan sudah tersambung.",
-    };
-  }
-
-  if (
-    String(rawBody || "")
-      .toLowerCase()
-      .includes("cors")
-  ) {
-    return {
-      title: "Akses Terblokir (CORS)",
-      message:
-        "Browser memblokir permintaan ke API (CORS). Tambahkan origin front-end Anda pada server API atau gunakan proxy/NGROK dengan header yang sesuai.",
-      detail: rawBody,
-    };
-  }
-
-  if (status === 429) {
-    return {
-      title: "Terlalu Banyak Percobaan",
-      message:
-        "Anda sementara dibatasi (rate limit). Tunggu sebentar lalu coba lagi.",
-      detail: rawBody,
-    };
-  }
-
-  if (status >= 500) {
-    return {
-      title: "Server Sedang Bermasalah",
-      message:
-        "Terjadi gangguan pada server. Coba lagi beberapa saat lagi. Jika berlanjut, hubungi admin/lab.",
-      detail: rawBody,
-    };
-  }
-
-  if (fromApi && (status === 401 || status === 403)) {
-    return {
-      title: "Akses Ditolak",
-      message:
-        "Kredensial salah atau token tidak valid. Pastikan NIM/password benar, atau ulangi login untuk memperbarui sesi.",
-      detail: rawBody,
-    };
-  }
-
-  return {
-    title: "Login Gagal",
-    message: err?.message || "Terjadi kesalahan saat login. Coba lagi.",
-    detail: rawBody,
-  };
 }
 
 /** ========== Util: map role backend -> FE ========== */
@@ -165,7 +92,6 @@ async function parseJsonSafe(res) {
       return JSON.parse(text);
     } catch {}
   }
-  // kalau bukan JSON, lempar text agar bisa ditampilkan di detail
   throw new Error(
     `Unexpected response (${res.status} ${res.statusText}). ${text.slice(
       0,
@@ -183,11 +109,28 @@ export default function Login() {
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // ✅ NEW: validasi required field (touched)
+  const [touched, setTouched] = useState({
+    nim: false,
+    password: false,
+  });
+
+  const nimError = touched.nim && nim.trim() === "" ? "NIM harus diisi." : "";
+  const pwdError =
+    touched.password && password.trim() === "" ? "Password harus diisi." : "";
+
+  // ✅ NEW: Validasi NIM 8 digit angka
+  const isNim8Digit = /^\d{8}$/.test(nim);
+  const nimFormatError =
+    touched.nim && nim.trim() !== "" && !isNim8Digit
+      ? "NIM harus terdiri dari 8 digit angka."
+      : "";
+
+  // ✅ popup hanya title + message
   const [popup, setPopup] = useState({
     open: false,
     title: "",
     message: "",
-    detail: "",
   });
 
   // === KONFIG API ===
@@ -201,15 +144,49 @@ export default function Login() {
     else navigate("/", { replace: true });
   };
 
+  // ✅ Ambil pesan backend (JSON {message} atau text biasa)
+  const pickBackendMessage = (rawText) => {
+    const t = String(rawText || "").trim();
+    if (!t) return "";
+    try {
+      const j = JSON.parse(t);
+      if (typeof j === "string") return j;
+      return (
+        j?.message ||
+        j?.error ||
+        j?.msg ||
+        j?.data?.message ||
+        j?.data?.error ||
+        ""
+      );
+    } catch {
+      return t;
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // ✅ required field check
+    const nimEmpty = nim.trim() === "";
+    const pwdEmpty = password.trim() === "";
+    if (nimEmpty || pwdEmpty) {
+      setTouched({ nim: true, password: true });
+      return;
+    }
+
+    // ✅ NEW: NIM harus 8 digit angka
+    if (!/^\d{8}$/.test(nim)) {
+      setTouched((t) => ({ ...t, nim: true }));
+      return;
+    }
+
     if (!API_BASE) {
       setPopup({
         open: true,
         title: "Konfigurasi API Belum Diatur",
         message:
           "Set VITE_API_URL di environment (misal .env) agar login ke server bisa berjalan.",
-        detail: "Contoh: VITE_API_URL=https://<domain-atau-ngrok>/api",
       });
       return;
     }
@@ -217,7 +194,7 @@ export default function Login() {
     setLoading(true);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     try {
       // 1) LOGIN
@@ -231,7 +208,6 @@ export default function Login() {
         body: JSON.stringify({ nim, password }),
         signal: controller.signal,
       }).catch((e) => {
-        // fetch reject (network/abort)
         throw e.name === "AbortError"
           ? new Error("Permintaan timeout. Coba lagi.")
           : e;
@@ -241,22 +217,23 @@ export default function Login() {
         .clone()
         .text()
         .catch(() => "");
+
+      // ✅ kalau gagal, tampilkan pesan backend saja
       if (!loginRes.ok) {
-        const errInfo = friendlyError(new Error("Login gagal"), {
-          phase: "login",
-          status: loginRes.status,
-          rawBody: loginRaw,
-          fromApi: true,
+        const backendMsg = pickBackendMessage(loginRaw);
+        setPopup({
+          open: true,
+          title: "Login Gagal",
+          message: backendMsg || "Login gagal. Periksa NIM dan password.",
         });
-        throw new Error(`${errInfo.title}: ${errInfo.message}\n${loginRaw}`);
+        return;
       }
 
-      // coba parse json aman
+      // parse json login
       let loginData = {};
       try {
         loginData = JSON.parse(loginRaw);
       } catch {
-        // fallback ke util
         loginData = await parseJsonSafe(loginRes);
       }
 
@@ -269,16 +246,12 @@ export default function Login() {
         loginData?.user || loginData?.data?.user || loginData?.profile || {};
 
       if (!token) {
-        const errInfo = friendlyError(
-          new Error("Token tidak ditemukan pada respons login."),
-          {
-            phase: "login",
-            status: loginRes.status,
-            rawBody: loginRaw,
-            fromApi: true,
-          }
-        );
-        throw new Error(`${errInfo.title}: ${errInfo.message}\n${loginRaw}`);
+        setPopup({
+          open: true,
+          title: "Login Gagal",
+          message: "Token tidak ditemukan pada respons login.",
+        });
+        return;
       }
 
       localStorage.setItem("token", token);
@@ -301,18 +274,21 @@ export default function Login() {
         .clone()
         .text()
         .catch(() => "");
+
+      // ✅ kalau gagal ambil role, tampilkan pesan backend saja
       if (!roleRes.ok) {
-        const errInfo = friendlyError(new Error("Gagal mengambil role"), {
-          phase: "role",
-          status: roleRes.status,
-          rawBody: roleBody,
-          fromApi: true,
+        const backendMsg = pickBackendMessage(roleBody);
+        setPopup({
+          open: true,
+          title: "Gagal Mengambil Role",
+          message: backendMsg || "Gagal mengambil role dari server.",
         });
-        throw new Error(`${errInfo.title}: ${errInfo.message}\n${roleBody}`);
+        return;
       }
 
       const ct = roleRes.headers.get("content-type") || "";
       let rawRole = "";
+
       if (ct.includes("application/json")) {
         try {
           const parsed = JSON.parse(roleBody);
@@ -337,17 +313,14 @@ export default function Login() {
       rawRole = String(rawRole)
         .trim()
         .replace(/^"+|"+$/g, "");
+
       if (!rawRole) {
-        const errInfo = friendlyError(
-          new Error("Server tidak mengembalikan role yang valid."),
-          {
-            phase: "role",
-            status: roleRes.status,
-            rawBody: roleBody,
-            fromApi: true,
-          }
-        );
-        throw new Error(`${errInfo.title}: ${errInfo.message}\n${roleBody}`);
+        setPopup({
+          open: true,
+          title: "Gagal Mengambil Role",
+          message: "Server tidak mengembalikan role yang valid.",
+        });
+        return;
       }
 
       const userRole = mapRole(rawRole);
@@ -355,12 +328,10 @@ export default function Login() {
       setRole(userRole);
       goToDashboardByRole(userRole);
     } catch (err) {
-      const f = friendlyError(err);
       setPopup({
         open: true,
-        title: f.title,
-        message: f.message,
-        detail: f.detail || String(err?.message || ""),
+        title: "Login Gagal",
+        message: err?.message || "Terjadi kesalahan saat login. Coba lagi.",
       });
       console.error(err);
     } finally {
@@ -376,7 +347,6 @@ export default function Login() {
         open={popup.open}
         title={popup.title}
         message={popup.message}
-        detail={popup.detail}
         onClose={() => setPopup((p) => ({ ...p, open: false }))}
       />
 
@@ -404,12 +374,28 @@ export default function Login() {
               <input
                 id="nim"
                 type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={nim}
-                onChange={(e) => setNim(e.target.value)}
+                onChange={(e) => {
+                  // ✅ hanya angka + max 8 digit
+                  const onlyDigits = e.target.value
+                    .replace(/\D/g, "")
+                    .slice(0, 8);
+                  setNim(onlyDigits);
+                  if (!touched.nim) setTouched((t) => ({ ...t, nim: true }));
+                }}
+                onBlur={() => setTouched((t) => ({ ...t, nim: true }))}
+                maxLength={8}
                 required
                 className="mt-1 block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-3 py-2 shadow-sm"
-                placeholder="Masukkan NIM"
+                placeholder="Masukkan NIM (8 digit)"
               />
+              {(nimError || nimFormatError) && (
+                <p className="mt-1 text-xs text-red-600">
+                  {nimError || nimFormatError}
+                </p>
+              )}
             </div>
 
             {/* Password */}
@@ -426,7 +412,12 @@ export default function Login() {
                   type={showPwd ? "text" : "password"}
                   autoComplete="current-password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (!touched.password)
+                      setTouched((t) => ({ ...t, password: true }));
+                  }}
+                  onBlur={() => setTouched((t) => ({ ...t, password: true }))}
                   required
                   className="block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-3 py-2 pr-10 shadow-sm"
                   placeholder="Masukkan password"
@@ -463,6 +454,9 @@ export default function Login() {
                   )}
                 </button>
               </div>
+              {pwdError && (
+                <p className="mt-1 text-xs text-red-600">{pwdError}</p>
+              )}
             </div>
 
             {/* Submit */}

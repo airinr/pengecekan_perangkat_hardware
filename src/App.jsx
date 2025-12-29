@@ -16,6 +16,9 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 
+// ✅ TAMBAHKAN INI
+import RequireAuth from "./routes/RequireAuth";
+
 // ASISTEN
 import PerangkatLab from "./pages/assistant/template/PerangkatLab";
 
@@ -82,62 +85,279 @@ function AppContent() {
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/profile" element={<Profile />} />
 
-          {/* Asisten */}
-          <Route path="/dashboard_asisten" element={<DashboardAsisten />} />
-          <Route path="/lab609" element={<Lab609 />} />
-          <Route path="/lab610" element={<Lab610 />} />
+          {/* ✅ BUTUH LOGIN (admin/asisten) */}
+          <Route
+            path="/profile"
+            element={
+              <RequireAuth>
+                <Profile />
+              </RequireAuth>
+            }
+          />
 
-          <Route path="/perangkatlab" element={<PerangkatLab />} />
+          {/* ✅ ASISTEN ONLY */}
+          <Route
+            path="/dashboard_asisten"
+            element={
+              <RequireAuth allowRoles={["asisten"]}>
+                <DashboardAsisten />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/lab609"
+            element={
+              <RequireAuth allowRoles={["asisten"]}>
+                <Lab609 />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/lab610"
+            element={
+              <RequireAuth allowRoles={["asisten"]}>
+                <Lab610 />
+              </RequireAuth>
+            }
+          />
+
+          <Route
+            path="/perangkatlab"
+            element={
+              <RequireAuth allowRoles={["asisten"]}>
+                <PerangkatLab />
+              </RequireAuth>
+            }
+          />
 
           {/* LAB 609 */}
-          <Route path="/lab609_merakit_pc" element={<MerakitPc />} />
-          <Route path="/lab609_bios_partisi" element={<MerakitPc />} />
-          <Route path="/lab609_jarkom" element={<MerakitPc />} />
-          <Route path="/lab609_troubleshooting" element={<MerakitPc />} />
+          <Route
+            path="/lab609_merakit_pc"
+            element={
+              <RequireAuth allowRoles={["asisten"]}>
+                <MerakitPc />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/lab609_bios_partisi"
+            element={
+              <RequireAuth allowRoles={["asisten"]}>
+                <BiosPartisi />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/lab609_jarkom"
+            element={
+              <RequireAuth allowRoles={["asisten"]}>
+                <JaringanKomputer />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/lab609_troubleshooting"
+            element={
+              <RequireAuth allowRoles={["asisten"]}>
+                <Troubleshooting />
+              </RequireAuth>
+            }
+          />
 
-          <Route path="/history_detail/:idHistory" element={<Detail />} />
+          <Route
+            path="/history_detail/:idHistory"
+            element={
+              <RequireAuth allowRoles={["asisten"]}>
+                <Detail />
+              </RequireAuth>
+            }
+          />
 
           {/* FORM LAB 609 */}
-          <Route path="/form_merakit_pc" element={<FormMerakitPc />} />
-          <Route path="/form_bios_partisi" element={<FormBiosPartisi />} />
-          <Route path="/form_jarkom" element={<FormJarkom />} />
+          <Route
+            path="/form_merakit_pc"
+            element={
+              <RequireAuth allowRoles={["asisten"]}>
+                <FormMerakitPc />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/form_bios_partisi"
+            element={
+              <RequireAuth allowRoles={["asisten"]}>
+                <FormBiosPartisi />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/form_jarkom"
+            element={
+              <RequireAuth allowRoles={["asisten"]}>
+                <FormJarkom />
+              </RequireAuth>
+            }
+          />
           <Route
             path="/form_troubleshooting"
-            element={<FormTroubleShooting />}
+            element={
+              <RequireAuth allowRoles={["asisten"]}>
+                <FormTroubleShooting />
+              </RequireAuth>
+            }
           />
 
           {/* LAB 610 */}
-          <Route path="/lab610_merakit_pc" element={<MerakitPc610 />} />
-          <Route path="/lab610_bios_partisi" element={<MerakitPc610 />} />
-          <Route path="/lab610_jarkom" element={<MerakitPc610 />} />
-          <Route path="/lab610_troubleshooting" element={<MerakitPc610 />} />
+          <Route
+            path="/lab610_merakit_pc"
+            element={
+              <RequireAuth allowRoles={["asisten"]}>
+                <MerakitPc610 />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/lab610_bios_partisi"
+            element={
+              <RequireAuth allowRoles={["asisten"]}>
+                <BiosPartisi610 />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/lab610_jarkom"
+            element={
+              <RequireAuth allowRoles={["asisten"]}>
+                <JaringanKomputer610 />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/lab610_troubleshooting"
+            element={
+              <RequireAuth allowRoles={["asisten"]}>
+                <Troubleshooting610 />
+              </RequireAuth>
+            }
+          />
 
           {/* FORM LAB 610 */}
-          <Route path="/form_merakit_pc" element={<FormMerakitPc />} />
-          <Route path="/form_bios_partisi" element={<FormBiosPartisi />} />
-          <Route path="/form_jarkom" element={<FormJarkom />} />
+          <Route
+            path="/form_merakit_pc"
+            element={
+              <RequireAuth allowRoles={["asisten"]}>
+                <FormMerakitPc />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/form_bios_partisi"
+            element={
+              <RequireAuth allowRoles={["asisten"]}>
+                <FormBiosPartisi />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/form_jarkom"
+            element={
+              <RequireAuth allowRoles={["asisten"]}>
+                <FormJarkom />
+              </RequireAuth>
+            }
+          />
           <Route
             path="/form_troubleshooting"
-            element={<FormTroubleShooting />}
+            element={
+              <RequireAuth allowRoles={["asisten"]}>
+                <FormTroubleShooting />
+              </RequireAuth>
+            }
           />
 
-          {/* Admin */}
-          <Route path="/dashboard_admin" element={<DashboardAdmin />} />
-          <Route path="/jadwal_asisten" element={<JadwalAsisten />} />
-          <Route path="/jadwal_asisten/add" element={<AddJadwalAsisten />} />
-          <Route path="/daftar_asisten" element={<DaftarAsisten />} />
-          <Route path="/admin/lab609" element={<AdminLab609 />} />
-          <Route path="/admin/lab610" element={<AdminLab610 />} />
+          {/* ✅ ADMIN ONLY */}
+          <Route
+            path="/dashboard_admin"
+            element={
+              <RequireAuth allowRoles={["admin"]}>
+                <DashboardAdmin />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/jadwal_asisten"
+            element={
+              <RequireAuth allowRoles={["admin"]}>
+                <JadwalAsisten />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/jadwal_asisten/add"
+            element={
+              <RequireAuth allowRoles={["admin"]}>
+                <AddJadwalAsisten />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/daftar_asisten"
+            element={
+              <RequireAuth allowRoles={["admin"]}>
+                <DaftarAsisten />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/lab609"
+            element={
+              <RequireAuth allowRoles={["admin"]}>
+                <AdminLab609 />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/lab610"
+            element={
+              <RequireAuth allowRoles={["admin"]}>
+                <AdminLab610 />
+              </RequireAuth>
+            }
+          />
           <Route
             path="/daftar_asisten/:nim/aktivitas"
-            element={<AktivitasAsisten />}
+            element={
+              <RequireAuth allowRoles={["admin"]}>
+                <AktivitasAsisten />
+              </RequireAuth>
+            }
           />
 
-          <Route path="/admin/dosen" element={<DaftarDosen />} />
-          <Route path="/admin/kelas" element={<DaftarKelas />} />
-          <Route path="/admin/barang" element={<MasterBarang />} />
+          <Route
+            path="/admin/dosen"
+            element={
+              <RequireAuth allowRoles={["admin"]}>
+                <DaftarDosen />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/kelas"
+            element={
+              <RequireAuth allowRoles={["admin"]}>
+                <DaftarKelas />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/barang"
+            element={
+              <RequireAuth allowRoles={["admin"]}>
+                <MasterBarang />
+              </RequireAuth>
+            }
+          />
         </Routes>
       </div>
     </>
