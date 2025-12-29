@@ -194,8 +194,8 @@ export default function NavbarAdmin({
 
       {/* Perangkat */}
       <Dropdown
-        sectionPrefix="labolatorium"
-        title="Labolatorium"
+        sectionPrefix="laboratorium"
+        title="Laboratorium"
         icon={
           <svg
             xmlns="http://www.w3.org/2000/svg"

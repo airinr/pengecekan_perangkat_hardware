@@ -63,6 +63,10 @@ export default function Lab609() {
     status: STATUS_COMPLETE,
   });
 
+  // ✅ ======= Modal Konfirmasi Reports (BARU) =======
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [selectedRow, setSelectedRow] = useState(null);
+
   const onChangeForm = (e) => {
     const { name, value } = e.target;
     setForm((f) => ({ ...f, [name]: value }));
@@ -218,9 +222,12 @@ export default function Lab609() {
           item?.barangModel?.namaBarang ?? item?.namaBarang ?? idBarang ?? "-";
         const jumlahNormal = Number(item?.jumlahNormal ?? 0);
         const jumlahRusak = Number(item?.jumlahRusak ?? 0);
+
+        // ✅ Total = Normal - Rusak
         const jumlah =
           (Number.isFinite(jumlahNormal) ? jumlahNormal : 0) -
           (Number.isFinite(jumlahRusak) ? jumlahRusak : 0);
+
         const status = jumlahRusak > 0 ? STATUS_INCOMPLETE : STATUS_COMPLETE;
 
         return {
@@ -373,7 +380,8 @@ export default function Lab609() {
         throw new Error(msg);
       }
 
-      const total = jn + jr;
+      // ✅ Total = Normal - Rusak
+      const total = jn - jr;
       const status = jr > 0 ? STATUS_INCOMPLETE : STATUS_COMPLETE;
       setRows((prev) =>
         prev.map((r) =>
@@ -394,16 +402,16 @@ export default function Lab609() {
   };
 
   const markResolved = async (row) => {
-    const jn = Number(row.jumlahNormal ?? 0);
-    const jr = Number(row.jumlahRusak ?? 0);
     const newRusak = 0;
 
+    // ✅ Update UI: jumlah = jumlahNormal - jumlahRusak
     setRows((prev) =>
       prev.map((r) =>
         r.id === row.id
           ? {
               ...r,
               jumlahRusak: newRusak,
+              jumlah: Number(r.jumlahNormal ?? 0) - newRusak,
               status: STATUS_COMPLETE,
             }
           : r
@@ -485,7 +493,7 @@ export default function Lab609() {
         ),
       },
     ],
-    [openDesc, openEdit] // <-- penting agar handler tidak stale
+    [openDesc, openEdit]
   );
 
   // ======= Export CSV =======
@@ -645,7 +653,7 @@ export default function Lab609() {
             onChange={(e) => setSortKey(e.target.value)}
             className="rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-sm text-slate-200"
           >
-            <option value="no">Index (#)</option>
+            <option value="no">No</option>
             <option value="nama">Nama</option>
             <option value="jumlahNormal">Jumlah Normal</option>
             <option value="jumlahRusak">Jumlah Rusak</option>
@@ -715,7 +723,13 @@ export default function Lab609() {
                           className="h-4 w-4 accent-blue-600"
                           checked={false}
                           onChange={(e) => {
-                            if (e.target.checked) markResolved(row);
+                            if (!e.target.checked) return;
+
+                            // ✅ buka modal konfirmasi yang cantik
+                            setSelectedRow(row);
+                            setShowConfirm(true);
+
+                            // reset checkbox (karena checkbox ini tidak pakai state)
                             e.target.checked = false;
                           }}
                         />
@@ -738,6 +752,106 @@ export default function Lab609() {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* ===== Modal Konfirmasi Perbaikan (CANTIK) ===== */}
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => {
+              setShowConfirm(false);
+              setSelectedRow(null);
+            }}
+          />
+
+          {/* Card */}
+          <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-slate-900 shadow-2xl">
+            {/* Header gradient */}
+            <div className="bg-gradient-to-r from-blue-600/30 via-indigo-600/20 to-violet-600/30 px-6 py-5">
+              <div className="flex items-center gap-3">
+                <div className="h-11 w-11 rounded-xl bg-blue-500/20 text-blue-300 grid place-items-center ring-1 ring-white/10">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 9v3m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">
+                    Konfirmasi Perbaikan
+                  </h3>
+                  <p className="text-xs text-slate-300">
+                    Pastikan data yang Anda input sudah benar.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-5">
+              <p className="text-sm leading-relaxed text-slate-200">
+                Apakah Anda yakin{" "}
+                <span className="font-semibold text-white">
+                  semua perangkat sudah diperbaiki / ditindaklanjuti
+                </span>
+                ?
+              </p>
+
+              {/* Info perangkat */}
+              {selectedRow && (
+                <div className="mt-4 rounded-xl border border-white/10 bg-slate-950 px-4 py-3">
+                  <div className="text-[11px] text-slate-400">Perangkat</div>
+                  <div className="mt-1 text-sm font-semibold text-slate-100">
+                    {selectedRow.nama}
+                  </div>
+                  <div className="mt-1 text-xs text-slate-400">
+                    Rusak/Hilang:{" "}
+                    <span className="font-semibold text-yellow-300">
+                      {selectedRow.jumlahRusak}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Footer buttons */}
+              <div className="mt-6 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowConfirm(false);
+                    setSelectedRow(null);
+                  }}
+                  className="rounded-xl border border-white/15 px-4 py-2 text-sm text-slate-200 hover:bg-white/5"
+                >
+                  Batal
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (selectedRow) markResolved(selectedRow);
+                    setShowConfirm(false);
+                    setSelectedRow(null);
+                  }}
+                  className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-blue-500"
+                >
+                  Ya, Sudah
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -856,26 +970,6 @@ export default function Lab609() {
                         placeholder="0"
                       />
                     </div>
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm text-slate-300">
-                      Status (tampilan)
-                    </label>
-                    <select
-                      name="status"
-                      value={form.status}
-                      onChange={onChangeForm}
-                      className="w-full rounded-lg border border-white/15 bg-slate-950 px-3 py-2 text-sm text-slate-100"
-                    >
-                      <option value={STATUS_COMPLETE}>{STATUS_COMPLETE}</option>
-                      <option value={STATUS_INCOMPLETE}>
-                        {STATUS_INCOMPLETE}
-                      </option>
-                    </select>
-                    <p className="mt-1 text-[11px] text-slate-400">
-                      * Status final mengikuti jumlah rusak (rusak lebih dari 0
-                      = Tidak Lengkap).
-                    </p>
                   </div>
                 </>
               )}

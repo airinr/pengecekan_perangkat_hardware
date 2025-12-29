@@ -144,7 +144,7 @@ function AppContent() {
             path="/lab609_bios_partisi"
             element={
               <RequireAuth allowRoles={["asisten"]}>
-                <BiosPartisi />
+                <MerakitPc />
               </RequireAuth>
             }
           />
@@ -152,7 +152,7 @@ function AppContent() {
             path="/lab609_jarkom"
             element={
               <RequireAuth allowRoles={["asisten"]}>
-                <JaringanKomputer />
+                <MerakitPc />
               </RequireAuth>
             }
           />
@@ -160,7 +160,7 @@ function AppContent() {
             path="/lab609_troubleshooting"
             element={
               <RequireAuth allowRoles={["asisten"]}>
-                <Troubleshooting />
+                <MerakitPc />
               </RequireAuth>
             }
           />
@@ -221,7 +221,7 @@ function AppContent() {
             path="/lab610_bios_partisi"
             element={
               <RequireAuth allowRoles={["asisten"]}>
-                <BiosPartisi610 />
+                <MerakitPc610 />
               </RequireAuth>
             }
           />
@@ -229,7 +229,7 @@ function AppContent() {
             path="/lab610_jarkom"
             element={
               <RequireAuth allowRoles={["asisten"]}>
-                <JaringanKomputer610 />
+                <MerakitPc610 />
               </RequireAuth>
             }
           />
@@ -237,7 +237,7 @@ function AppContent() {
             path="/lab610_troubleshooting"
             element={
               <RequireAuth allowRoles={["asisten"]}>
-                <Troubleshooting610 />
+                <MerakitPc610 />
               </RequireAuth>
             }
           />

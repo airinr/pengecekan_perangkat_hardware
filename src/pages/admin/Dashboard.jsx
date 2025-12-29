@@ -59,21 +59,6 @@ export default function DashboardAdmin() {
 
         {/* Hero */}
         <div className="relative w-full max-w-3xl text-center mb-10">
-          {/* Refresh button (BLUE) */}
-          <div className="absolute right-0 top-0">
-            <button
-              type="button"
-              onClick={() => {
-                fetchDamaged();
-                showSuccess("Disegarkan");
-              }}
-              className="rounded-lg border border-blue-400/30 bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/60 disabled:opacity-60"
-              disabled={loading || barangLoading}
-            >
-              {loading || barangLoading ? "Memuat…" : "Refresh"}
-            </button>
-          </div>
-
           <h1 className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg">
             Dashboard Admin
           </h1>

@@ -6,7 +6,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useRole } from "../contexts/RoleContext";
 import logo from "../assets/images/logo_unikom.ico";
 
-/** ========== Popup Komponen (TANPA detail teknis) ========== */
+/** ====
+terjemahkan ====== Popup Komponen (TANPA detail teknis) ========== */
 function ErrorPopup({ open, title, message, onClose }) {
   const closeBtnRef = useRef(null);
 
@@ -164,6 +165,20 @@ export default function Login() {
     }
   };
 
+  // ✅ NEW: Mapping pesan backend -> pesan Indonesia yang lebih rapi
+  const mapErrorMessage = (msg) => {
+    const raw = String(msg || "").trim();
+    const m = raw.toLowerCase();
+
+    if (m.includes("user not found")) return "Pengguna Tidak Ditemukan";
+
+    // optional tambahan (boleh hapus kalau tidak perlu)
+    if (m.includes("invalid credentials")) return "NIM atau password salah";
+    if (m.includes("password")) return "Password salah";
+
+    return raw;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -218,13 +233,15 @@ export default function Login() {
         .text()
         .catch(() => "");
 
-      // ✅ kalau gagal, tampilkan pesan backend saja
+      // ✅ kalau gagal, tampilkan pesan backend yang sudah dimapping
       if (!loginRes.ok) {
         const backendMsg = pickBackendMessage(loginRaw);
         setPopup({
           open: true,
           title: "Login Gagal",
-          message: backendMsg || "Login gagal. Periksa NIM dan password.",
+          message:
+            mapErrorMessage(backendMsg) ||
+            "Login gagal. Periksa NIM dan password.",
         });
         return;
       }
@@ -275,13 +292,14 @@ export default function Login() {
         .text()
         .catch(() => "");
 
-      // ✅ kalau gagal ambil role, tampilkan pesan backend saja
+      // ✅ kalau gagal ambil role, tampilkan pesan backend yang sudah dimapping
       if (!roleRes.ok) {
         const backendMsg = pickBackendMessage(roleBody);
         setPopup({
           open: true,
           title: "Gagal Mengambil Role",
-          message: backendMsg || "Gagal mengambil role dari server.",
+          message:
+            mapErrorMessage(backendMsg) || "Gagal mengambil role dari server.",
         });
         return;
       }
