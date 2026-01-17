@@ -175,7 +175,7 @@ export default function FormTroubleShooting() {
       list.forEach((it) => {
         const nama = (it?.barangModel?.namaBarang || "").trim().toLowerCase();
         const idBarang = (it?.idBarang || "").trim();
-        const jn = Number(it?.jumlahNormal ?? 0);
+        const jn = Number(it?.jumlah ?? 0);
         if (nama && idBarang) nameToInfo.set(nama, { idBarang, jn });
       });
 
@@ -623,12 +623,10 @@ export default function FormTroubleShooting() {
               <tr className="text-left">
                 <th className="px-4 py-3 w-12 text-slate-200">No</th>
                 <th className="px-4 py-3 text-slate-200">Kelengkapan</th>
-                <th className="px-4 py-3 w-40 text-slate-200">
-                  ID Barang (BRNG…)
-                </th>
+                <th className="px-4 py-3 w-40 text-slate-200">ID Barang</th>
                 <th className="px-4 py-3 w-28 text-slate-200">Jumlah Awal</th>
                 <th className="px-4 py-3 w-28 text-slate-200">Jumlah Akhir</th>
-                <th className="px-4 py-3 w-64 text-slate-200">Kerusakan</th>
+                <th className="px-4 py-3 w-64 text-slate-200">Catatan</th>
               </tr>
             </thead>
             <tbody>
@@ -645,6 +643,7 @@ export default function FormTroubleShooting() {
                       }
                       className="w-full rounded-md border border-slate-700 bg-slate-950 text-slate-100 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-slate-600"
                       placeholder="BRNG00011"
+                      disabled
                     />
                   </td>
                   <td className="px-4 py-2">
@@ -657,6 +656,7 @@ export default function FormTroubleShooting() {
                       }
                       className="w-full rounded-md border border-slate-700 bg-slate-950 text-slate-100 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-slate-600"
                       placeholder="auto dari data lab"
+                      disabled
                     />
                   </td>
                   <td className="px-4 py-2">
