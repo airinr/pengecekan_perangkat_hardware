@@ -17,102 +17,94 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-700 via-blue-600 to-indigo-700 text-white relative overflow-hidden">
-      {/* Decorative background blobs */}
+
+    <div className="h-screen w-screen bg-gradient-to-b from-blue-800 via-blue-600 to-indigo-700 text-white relative overflow-hidden flex flex-col font-sans">
+      
+      {/* Background Ornaments */}
       <div className="pointer-events-none absolute -top-20 -left-20 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-24 -right-24 h-96 w-96 rounded-full bg-cyan-300/20 blur-3xl" />
 
       {/* NAVBAR */}
-      <nav className="sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4">
-          <Link to="/" className="flex items-center gap-2 group">
+      <nav className="sticky top-0 z-50 w-full backdrop-blur-sm bg-blue-900/10 border-b border-white/5 flex-none">
+        <div className="w-full flex items-center justify-between px-8 py-4">
+          
+          {/* Logo */}
+          <div className="flex items-center gap-3 group">
             <img
               src={logo}
               alt="UNIKOM"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white text-blue-600 font-extrabold shadow-md group-hover:scale-105 transition"
+              className="h-10 w-10 rounded-xl bg-white p-1 object-contain shadow-md group-hover:scale-105 transition"
             />
-            <span className="text-lg sm:text-xl font-semibold tracking-tight">
+            <span className="text-xl font-bold tracking-tight">
               AP2SC UNIKOM
             </span>
-          </Link>
-
-          <div className="hidden sm:flex items-center gap-4">
-            {/* Perangkat: cek login dulu */}
-            <a
-              href="/features"
-              onClick={goFeatures}
-              className="hover:underline/50 underline-offset-4"
-            >
-              Perangkat
-            </a>
-
-            {/* Kontak: ke Instagram */}
-            <a
-              href="https://www.instagram.com/ap2scunikom?igsh=YmFsNmlkZWY3emV4"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:underline/50 underline-offset-4"
-            >
-              Kontak
-            </a>
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* Tombol */}
+          <div className="flex items-center gap-4">
             <Link
               to="/login"
-              className="hidden sm:inline-flex px-4 py-2 rounded-lg font-semibold bg-white/10 backdrop-blur-md hover:bg-white/20 transition shadow"
+              className="hidden sm:inline-flex px-6 py-2.5 rounded-lg font-bold bg-white/10 hover:bg-white/20 transition border border-white/10 backdrop-blur-md"
             >
-              Login
+              LOGIN
             </Link>
             <Link
               to="/register"
-              className="px-4 py-2 rounded-lg font-semibold bg-white text-blue-700 hover:bg-gray-100 transition shadow"
+              className="px-6 py-2.5 rounded-lg font-semibold bg-white text-blue-700 hover:bg-gray-100 transition shadow-lg"
             >
-              Register
+              REGISTER
             </Link>
           </div>
         </div>
       </nav>
 
-      {/* HERO */}
-      <header className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-16 sm:pt-16 sm:pb-20">
-        <div className="grid lg:grid-cols-2 items-center gap-10">
-          <div>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight">
-              Selamat Datang{" "}
-              <span className="text-cyan-200">Website Managemen</span> Perangkat
-              Lab. Hardware
+      {/* HERO SECTION */}
+      {/* 'flex-1' atau 'flex-grow' sangat PENTING disini. */}
+      {/* Ini membuat bagian tengah mengambil SEMUA sisa ruang kosong, sehingga Footer terdorong ke paling bawah. */}
+      <header className="relative flex-1 flex items-center w-full px-8 overflow-hidden">
+        <div className="w-full h-full flex flex-col lg:flex-row items-center justify-between gap-12">
+          
+          {/* KOLOM KIRI (TEKS) */}
+          <div className="flex-1 text-left z-10 pl-4 lg:pl-10 flex flex-col justify-center">
+            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-extrabold leading-tight">
+              Selamat Datang <br />
+              <span className="text-cyan-300">Website Managemen</span> <br/>
+              Perangkat Lab
             </h1>
-            <div className="mt-6 flex flex-col sm:flex-row gap-3">
-              <Link
-                to="/login"
-                className="inline-flex items-center justify-center px-6 py-3 rounded-xl font-semibold bg-white text-blue-700 hover:bg-gray-100 transition shadow-lg"
-              >
-                Login
-              </Link>
+            <p className="mt-6 text-lg text-blue-100 max-w-xl leading-relaxed">
+              {/* Deskripsi kosong sesuai kode asli */}
+            </p>
+          </div>
+
+          {/* KOLOM KANAN (GAMBAR) */}
+          <div className="flex-1 flex justify-center lg:justify-end items-center w-full z-10 pr-4 lg:pr-10 h-full">
+            <div className="relative w-full max-w-lg aspect-square lg:max-w-xl flex items-center justify-center">
+                <div className="absolute inset-0 bg-white/5 backdrop-blur-2xl rounded-[3rem] border border-white/10 shadow-2xl transform rotate-3 scale-95 hover:rotate-0 hover:scale-100 transition duration-500 ease-out"></div>
+                <img 
+                    src={gear_logo} 
+                    alt="Hardware Gear" 
+                    className="relative z-10 w-4/5 h-4/5 object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.3)] animate-pulse-slow" 
+                />
             </div>
           </div>
 
-          {/* Illustration / Card */}
-          <div className="relative">
-            <div className="mx-auto max-w-md lg:max-w-none">
-              <div className="rounded-3xl bg-white/10 backdrop-blur-xl p-6 sm:p-8 shadow-2xl border border-white/10">
-                <img src={gear_logo} alt="AP2SC Gear" />
-              </div>
-            </div>
-          </div>
         </div>
       </header>
-
+      
       {/* FOOTER */}
-      <footer className="px-4 sm:px-6 lg:px-8 pb-10">
-        <div className="max-w-7xl mx-auto text-center text-white/70">
-          <p>&copy; {new Date().getFullYear()} AP2SC UNIKOM</p>
-        </div>
+      {/* flex-none memastikan footer tidak berubah ukurannya */}
+      <footer className="absolute-bottom-0 left-0 w-full py-4 text-center text-blue-200/60 text-xs sm:text-sm flex-none bg-blue-900/10 backdrop-blur-sm">
+        <p className="px-4 leading-relaxed">
+            &copy; {new Date().getFullYear()} Sekretariat AP2SC UNIKOM (R.4409) Universitas Komputer Indonesia <br className="hidden sm:block"/>
+            Jln. Dipatiukur No.102-116, Coblong, Lebakgede, Bandung, Jawa Barat 40132
+        </p>
       </footer>
     </div>
+    
   );
 }
+
+// ... Function icon lainnya biarkan saja ...
 
 function Feature({ title, desc, icon }) {
   return (

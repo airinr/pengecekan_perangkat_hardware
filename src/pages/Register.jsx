@@ -173,7 +173,7 @@ export default function Register() {
                 maxLength={8}
                 required
                 className="mt-1 block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-3 py-2 shadow-sm"
-                placeholder="Contoh: 10123194"
+                placeholder="Contoh: 10120068"
               />
               <p className="mt-1 text-[11px] text-gray-500">
                 NIM harus 8 digit angka.
@@ -206,7 +206,7 @@ export default function Register() {
                 maxLength={30}
                 required
                 className="mt-1 block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-3 py-2 shadow-sm"
-                placeholder="Nama lengkap"
+                placeholder="Nama Lengkap"
               />
               <p className="mt-1 text-[11px] text-gray-500">
                 Maksimal 30 karakter.
@@ -236,7 +236,7 @@ export default function Register() {
                 }}
                 required
                 className="mt-1 block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-3 py-2 shadow-sm"
-                placeholder="nama@mahasiswa.unikom.ac.id"
+                placeholder="you@mahasiswa.unikom.ac.id"
               />
               <p className="mt-1 text-[11px] text-gray-500">
                 Wajib menggunakan domain @mahasiswa.unikom.ac.id
