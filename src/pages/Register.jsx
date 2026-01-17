@@ -103,7 +103,7 @@ export default function Register() {
                 onChange={(e) => setNim(e.target.value)}
                 required
                 className="mt-1 block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-3 py-2 shadow-sm"
-                placeholder="Contoh: 1012345678"
+                placeholder="Contoh: 10120068"
               />
             </div>
 
@@ -123,7 +123,7 @@ export default function Register() {
                 onChange={(e) => setNama(e.target.value)}
                 required
                 className="mt-1 block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-3 py-2 shadow-sm"
-                placeholder="Nama lengkap"
+                placeholder="Nama Lengkap"
               />
             </div>
 
@@ -143,7 +143,7 @@ export default function Register() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="mt-1 block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-3 py-2 shadow-sm"
-                placeholder="you@example.com"
+                placeholder="you@mahasiswa.unikom.ac.id"
               />
             </div>
 
