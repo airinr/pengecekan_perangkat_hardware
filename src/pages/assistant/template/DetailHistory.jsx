@@ -8,7 +8,7 @@ import TablePage from "../template/TableTemplate";
 const API_BASE = import.meta.env.VITE_API_URL || "";
 const NGROK_HEADERS = { "ngrok-skip-browser-warning": "true" };
 
-// Kolom sesuai data detail history (mengacu ke screenshot)
+// 1. Tambahkan "catatan" ke dalam daftar kolom
 const columns = [
   { key: "no", header: "#" },
   { key: "idDataLab", header: "ID Data Lab" },
@@ -16,6 +16,7 @@ const columns = [
   { key: "jumlahAwal", header: "Jumlah Awal" },
   { key: "jumlahAkhir", header: "Jumlah Akhir" },
   { key: "jumlahRusak", header: "Jumlah Rusak" },
+  { key: "catatan", header: "Catatan" }, // Kolom baru
 ];
 
 // helper aman ambil nested value
@@ -31,7 +32,7 @@ const getNamaBarang = (it) =>
   "";
 
 export default function DetailHistory() {
-  const { idHistory } = useParams(); // route: /history_detail/:idHistory
+  const { idHistory } = useParams();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
@@ -46,7 +47,7 @@ export default function DetailHistory() {
 
         const res = await fetch(
           `${API_BASE}/praktikum/getDetailHistory/${encodeURIComponent(
-            idHistory || ""
+            idHistory || "",
           )}`,
           {
             headers: {
@@ -54,7 +55,7 @@ export default function DetailHistory() {
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
               ...NGROK_HEADERS,
             },
-          }
+          },
         );
 
         if (!res.ok) {
@@ -65,6 +66,7 @@ export default function DetailHistory() {
         const json = await res.json();
         const list = Array.isArray(json?.data) ? json.data : [];
 
+        // 2. Map variabel catatan dari item (it)
         const mapped = list.map((it, i) => ({
           no: i + 1,
           idDataLab: getIdDataLab(it),
@@ -72,6 +74,7 @@ export default function DetailHistory() {
           jumlahAwal: it?.jumlahAwal ?? "",
           jumlahAkhir: it?.jumlahAkhir ?? "",
           jumlahRusak: it?.jumlahRusak ?? "",
+          catatan: it?.catatan ?? "—",
         }));
 
         if (alive) setRows(mapped);
@@ -100,10 +103,10 @@ export default function DetailHistory() {
         loading
           ? "Memuat detail histori…"
           : err
-          ? `Error: ${err}`
-          : rows.length === 0
-          ? "Belum ada data detail untuk ditampilkan."
-          : "*Berikut detail histori"
+            ? `Error: ${err}`
+            : rows.length === 0
+              ? "Belum ada data detail untuk ditampilkan."
+              : "*Berikut detail histori"
       }
     />
   );

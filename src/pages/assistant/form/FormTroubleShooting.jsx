@@ -106,7 +106,7 @@ export default function FormTroubleShooting() {
       awal: "",
       akhir: "",
       kerusakan: "",
-    }))
+    })),
   );
 
   const [tindakLanjut, setTindakLanjut] = useState("");
@@ -129,7 +129,7 @@ export default function FormTroubleShooting() {
 
   const handleRowChange = (id, key, value) => {
     setRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, [key]: value } : r))
+      prev.map((r) => (r.id === id ? { ...r, [key]: value } : r)),
     );
   };
 
@@ -184,7 +184,7 @@ export default function FormTroubleShooting() {
           const info = nameToInfo.get(r.name.trim().toLowerCase());
           if (!info) return r;
           return { ...r, idBarang: info.idBarang, awal: info.jn };
-        })
+        }),
       );
     } catch (err) {
       console.error(err);
@@ -235,10 +235,10 @@ export default function FormTroubleShooting() {
       const list = Array.isArray(payload)
         ? payload
         : Array.isArray(payload?.data)
-        ? payload.data
-        : Array.isArray(payload?.dosen)
-        ? payload.dosen
-        : [];
+          ? payload.data
+          : Array.isArray(payload?.dosen)
+            ? payload.dosen
+            : [];
       const parsed = list.map(parseDosen).filter((x) => x.id && x.label);
 
       const uniqMap = new Map();
@@ -246,7 +246,7 @@ export default function FormTroubleShooting() {
         if (!uniqMap.has(x.id)) uniqMap.set(x.id, x);
       });
       const uniq = Array.from(uniqMap.values()).sort((a, b) =>
-        a.label.localeCompare(b.label)
+        a.label.localeCompare(b.label),
       );
       setDosenOptions(uniq);
     } catch (e) {
@@ -296,7 +296,7 @@ export default function FormTroubleShooting() {
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
               ...NGROK_HEADERS,
             },
-          }
+          },
         );
         if (!res.ok) {
           const msg =
@@ -308,10 +308,10 @@ export default function FormTroubleShooting() {
         const list = Array.isArray(payload)
           ? payload
           : Array.isArray(payload?.data)
-          ? payload.data
-          : Array.isArray(payload?.kelas)
-          ? payload.kelas
-          : [];
+            ? payload.data
+            : Array.isArray(payload?.kelas)
+              ? payload.kelas
+              : [];
 
         const parsed = list
           .map((k) => ({
@@ -322,7 +322,7 @@ export default function FormTroubleShooting() {
 
         setKelasOptions(parsed);
         setHeader((h) =>
-          parsed.some((k) => k.id === h.idKelas) ? h : { ...h, idKelas: "" }
+          parsed.some((k) => k.id === h.idKelas) ? h : { ...h, idKelas: "" },
         );
       } catch (e) {
         console.error(e);
@@ -334,7 +334,7 @@ export default function FormTroubleShooting() {
         setKelasLoading(false);
       }
     },
-    [API_BASE, tahunAjar, semester, dosenOptions]
+    [API_BASE, tahunAjar, semester, dosenOptions],
   );
 
   // re-fetch kelas saat idDosen/tahun/semester berubah
@@ -363,30 +363,29 @@ export default function FormTroubleShooting() {
   const onSubmit = async (e) => {
     e.preventDefault();
 
-    if (!labCode) return openError("lab tidak ditemukan di url");
+    if (!labCode) return openError("LAB tidak ditemukan di URL.");
     if (!kodePraktikum)
-      return openError("kode praktikum tidak ditemukan di url");
+      return openError("KODE praktikum tidak ditemukan di URL.");
 
-    // VALIDASI
+    // Validasi → tampil via popup
     if (!header.tanggal) return openError("tanggal");
     if (!header.idDosen) return openError("idDosen");
     if (!header.idKelas) return openError("idKelas");
     if (!header.waktuMulai) return openError("waktu");
-    if (!fotoFile) {
-      setShowFotoAlert(true); // popup jika foto kosong
-      return;
-    }
+
+    // ✅ Foto wajib diisi (frontend)
+    if (!fotoFile) return openError("foto");
 
     const dataAlat = rows
       .map((r) => ({
         idBarang: (r.idBarang || "").trim(),
         jumlahAkhir: Number.isFinite(Number(r.akhir)) ? Number(r.akhir) : 0,
+        catatan: r.kerusakan || "", // ✅ Menambahkan variabel catatan
       }))
       .filter((x) => x.idBarang);
 
     if (dataAlat.length === 0) return openError("dataAlat");
 
-    // backend butuh HH:MM:SS
     const waktuWithSeconds =
       header.waktuMulai.length === 5
         ? `${header.waktuMulai}:00`
@@ -410,7 +409,7 @@ export default function FormTroubleShooting() {
           method: "POST",
           headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           body: fd,
-        }
+        },
       );
 
       if (!res.ok) {
@@ -552,8 +551,8 @@ export default function FormTroubleShooting() {
                 {!header.idDosen
                   ? "Pilih dosen dulu"
                   : kelasLoading
-                  ? "Memuat kelas…"
-                  : "Pilih kelas…"}
+                    ? "Memuat kelas…"
+                    : "Pilih kelas…"}
               </option>
               {kelasOptions.map((k) => (
                 <option key={k.id} value={k.id}>

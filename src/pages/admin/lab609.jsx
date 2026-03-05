@@ -30,7 +30,7 @@ const PRAKTIKUM_CODES = {
 // Bangun URL dengan urutan query PASTI: ?kode=…&lab=…
 const toUrl = (path, kode, lab) =>
   `${path}?kode=${encodeURIComponent(kode || "")}&lab=${encodeURIComponent(
-    lab || ""
+    lab || "",
   )}`;
 
 export default function Lab609() {
@@ -115,10 +115,10 @@ export default function Lab609() {
       const list = Array.isArray(payload)
         ? payload
         : Array.isArray(payload?.data)
-        ? payload.data
-        : Array.isArray(payload?.barang)
-        ? payload.barang
-        : [];
+          ? payload.data
+          : Array.isArray(payload?.barang)
+            ? payload.barang
+            : [];
       const opts = list.map(normalizeBarang).filter((o) => o.idBarang);
       opts.sort((a, b) => a.namaBarang.localeCompare(b.namaBarang));
       setBarangOptions(opts);
@@ -143,7 +143,7 @@ export default function Lab609() {
       }
       const info =
         barangOptions.find(
-          (b) => String(b.idBarang) === String(row.idBarang)
+          (b) => String(b.idBarang) === String(row.idBarang),
         ) || {};
 
       const nama =
@@ -155,7 +155,7 @@ export default function Lab609() {
       setDescContent({ nama, deskripsi });
       setShowDesc(true);
     },
-    [barangOptions, barangLoading, fetchBarangOptions]
+    [barangOptions, barangLoading, fetchBarangOptions],
   );
 
   const resetForm = () =>
@@ -170,10 +170,10 @@ export default function Lab609() {
   // ======= Filter barang yang belum ditambahkan ke lab =======
   const selectableBarang = useMemo(() => {
     const existing = new Set(
-      rows.map((r) => String(r.idBarang || "").trim()).filter(Boolean)
+      rows.map((r) => String(r.idBarang || "").trim()).filter(Boolean),
     );
     return barangOptions.filter(
-      (b) => !existing.has(String(b.idBarang || "").trim())
+      (b) => !existing.has(String(b.idBarang || "").trim()),
     );
   }, [barangOptions, rows]);
 
@@ -181,7 +181,7 @@ export default function Lab609() {
   useEffect(() => {
     if (mode !== "add" || !form.idBarang) return;
     const stillExists = selectableBarang.some(
-      (b) => b.idBarang === form.idBarang
+      (b) => b.idBarang === form.idBarang,
     );
     if (!stillExists) setForm((f) => ({ ...f, idBarang: "" }));
   }, [mode, selectableBarang, form.idBarang]);
@@ -280,7 +280,7 @@ export default function Lab609() {
 
   const incompleteRows = useMemo(
     () => filteredSortedRows.filter((r) => r.status === STATUS_INCOMPLETE),
-    [filteredSortedRows]
+    [filteredSortedRows],
   );
 
   const totals = useMemo(() => {
@@ -290,7 +290,7 @@ export default function Lab609() {
         acc.rusak += Number(r.jumlahRusak || 0);
         return acc;
       },
-      { normal: 0, rusak: 0 }
+      { normal: 0, rusak: 0 },
     );
     return {
       normal: base.normal,
@@ -387,8 +387,8 @@ export default function Lab609() {
         prev.map((r) =>
           r.id === editingId
             ? { ...r, jumlahNormal: jn, jumlahRusak: jr, jumlah: total, status }
-            : r
-        )
+            : r,
+        ),
       );
 
       setShowModal(false);
@@ -414,8 +414,8 @@ export default function Lab609() {
               jumlah: Number(r.jumlahNormal ?? 0) - newRusak,
               status: STATUS_COMPLETE,
             }
-          : r
-      )
+          : r,
+      ),
     );
 
     try {
@@ -463,8 +463,8 @@ export default function Lab609() {
               v === STATUS_COMPLETE
                 ? "bg-green-500/15 text-green-300 ring-green-500/30"
                 : v === STATUS_INCOMPLETE
-                ? "bg-yellow-500/15 text-yellow-300 ring-yellow-500/30"
-                : "bg-slate-500/15 text-slate-300 ring-slate-500/30"
+                  ? "bg-yellow-500/15 text-yellow-300 ring-yellow-500/30"
+                  : "bg-slate-500/15 text-slate-300 ring-slate-500/30"
             }`}
           >
             {v}
@@ -493,7 +493,7 @@ export default function Lab609() {
         ),
       },
     ],
-    [openDesc, openEdit]
+    [openDesc, openEdit],
   );
 
   // ======= Export CSV =======
@@ -510,8 +510,8 @@ export default function Lab609() {
     filteredSortedRows.forEach((r) => {
       lines.push(
         [r.no, r.nama, r.jumlahNormal, r.jumlahRusak, r.jumlah, r.status].join(
-          ","
-        )
+          ",",
+        ),
       );
     });
     const blob = new Blob(["\uFEFF" + lines.join("\n")], {
@@ -904,8 +904,8 @@ export default function Lab609() {
                         {barangLoading
                           ? "Memuat daftar barang…"
                           : selectableBarang.length === 0
-                          ? "Semua barang sudah terdaftar"
-                          : "— pilih barang —"}
+                            ? "Semua barang sudah terdaftar"
+                            : "— pilih barang —"}
                       </option>
                       {selectableBarang.map((opt) => (
                         <option key={opt.idBarang} value={opt.idBarang}>
