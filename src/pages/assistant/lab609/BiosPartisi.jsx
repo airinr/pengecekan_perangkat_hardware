@@ -116,6 +116,15 @@ export default function BiosPartisi() {
   const [err, setErr] = useState("");
   const navigate = useNavigate();
 
+  const role = localStorage.getItem("role") || ""; 
+  const isAdmin = role.toLowerCase() === "admin";
+
+  const activeColumns = useMemo(() => {
+    if (isAdmin) return columns;
+    return columns.filter((col) => col.key !== "tindak_lanjut");
+  }, [isAdmin]);
+
+
   // fetch dari: /praktikum/getPraktikumHistory/{kodePraktikum}
   useEffect(() => {
     let alive = true;
@@ -201,8 +210,20 @@ export default function BiosPartisi() {
             ) : (
               "—"
             ),
-            tindak_lanjut: h?.tindakLanjut ?? "",
-            status: statusNode, // <-- tampilkan status
+            tindak_lanjut: isAdmin ? (
+              <div className="flex items-center gap-2">
+                <span>{h?.tindakLanjut || "Belum ada"}</span>
+                {/* Kamu bisa ganti onClick ini untuk buka modal/halaman edit betulan */}
+                <button 
+                  onClick={() => alert("Fitur edit belum dibuat!")}
+                  className="rounded bg-blue-600/20 px-2 py-1 text-xs text-blue-400 hover:bg-blue-600/40"
+                >
+                  Edit
+                </button>
+              </div>
+            ) : "",
+
+            status: statusNode, 
             aksi: (
               <button
                 type="button"
@@ -245,7 +266,7 @@ export default function BiosPartisi() {
       title="Perangkat Laboratorium 609 - Bios dan Partisi"
       addRoute={addHref}
       addLabel="+ Tambah Data"
-      columns={columns}
+      columns={activeColumns}
       rows={rows}
       note={
         loading

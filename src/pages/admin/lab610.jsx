@@ -476,7 +476,7 @@ export default function Lab610() {
       { key: "nama", header: "Nama" },
       { key: "jumlahNormal", header: "Jumlah Normal" },
       { key: "jumlahRusak", header: "Jumlah Rusak" },
-      { key: "jumlah", header: "Total" },
+      { key: "jumlah", header: "Tersedia" },
       {
         key: "status",
         header: "Status",
@@ -527,7 +527,7 @@ export default function Lab610() {
       "Nama",
       "Jumlah Normal",
       "Jumlah Rusak",
-      "Total",
+      "Tersedia",
       "Status",
     ];
     const lines = [header.join(",")];
@@ -681,7 +681,7 @@ export default function Lab610() {
             <option value="nama">Nama</option>
             <option value="jumlahNormal">Jumlah Normal</option>
             <option value="jumlahRusak">Jumlah Rusak</option>
-            <option value="jumlah">Total</option>
+            <option value="jumlah">Tersedia</option>
             <option value="status">Status</option>
           </select>
           <button
@@ -719,7 +719,7 @@ export default function Lab610() {
                   <th className="px-4 py-3 text-slate-200">Nama</th>
                   <th className="px-4 py-3 text-slate-200">Jumlah Normal</th>
                   <th className="px-4 py-3 text-slate-200">Jumlah Rusak</th>
-                  <th className="px-4 py-3 text-slate-200">Total</th>
+                  <th className="px-4 py-3 text-slate-200">Tersedia</th>
                   <th className="px-4 py-3 text-slate-200">Status</th>
                   <th className="px-4 py-3 text-slate-200">Aksi</th>
                 </tr>
