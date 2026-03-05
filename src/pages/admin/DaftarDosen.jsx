@@ -29,6 +29,7 @@ export default function DaftarDosen() {
     DETAIL: (id) => `${API_BASE}/dosen/${encodeURIComponent(id)}`,
     ADD_KELAS_DOSEN: `${API_BASE}/dosenKelas/addKelasDosen`,
     ADD_DOSEN_SIMPLE: `${API_BASE}/dosen/addDosen`,
+    BULK_ADD: `${API_BASE}/dosen/bulkAdd`, // ✅ Endpoint Bulk Baru
   };
 
   const MAPEL_API = {
@@ -815,6 +816,7 @@ export default function DaftarDosen() {
     }
   };
 
+  // ✅ HANDLER IMPORT CSV (DIREVISI: Mengirim File Langsung)
   const handleImportCSV = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -823,49 +825,42 @@ export default function DaftarDosen() {
     setError("");
     setSuccess("");
 
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const text = event.target.result;
-      const lines = text.split("\n");
-      // Asumsi baris pertama adalah header: nama
-      const data = lines
-        .slice(1)
-        .map((line) => line.trim())
-        .filter(Boolean);
+    const token = localStorage.getItem("token");
 
-      let successCount = 0;
-      let failCount = 0;
+    // Gunakan FormData untuk mengirim file fisik
+    const fd = new FormData();
+    // Catatan: 'file' adalah nama field yang biasanya diharapkan multer di backend
+    // Jika backend Anda menggunakan nama field lain (misal: 'csv' atau 'dosen'), ganti "file" di bawah ini
+    fd.append("file", file);
 
-      const token = localStorage.getItem("token");
+    try {
+      const res = await fetch(DOSEN_API.BULK_ADD, {
+        method: "POST",
+        headers: {
+          // JANGAN set 'Content-Type': 'application/json' di sini
+          // Browser akan otomatis set boundary multipart/form-data
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...NGROK_HEADERS,
+        },
+        body: fd,
+      });
 
-      for (const nama of data) {
-        try {
-          const res = await fetch(DOSEN_API.ADD_DOSEN_SIMPLE, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Accept: "application/json",
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-              ...NGROK_HEADERS,
-            },
-            body: JSON.stringify({ namaDosen: nama }),
-          });
-          if (res.ok) successCount++;
-          else failCount++;
-        } catch (err) {
-          failCount++;
-        }
+      const payload = await res.json();
+
+      if (!res.ok) {
+        // Ini akan menangkap pesan "No file uploaded" jika nama field-nya salah
+        throw new Error(payload?.message || "Gagal mengimpor data dosen.");
       }
 
-      setSuccess(
-        `${successCount} dosen berhasil diimpor.${failCount > 0 ? ` ${failCount} gagal.` : ""}`,
-      );
-      fetchDosen();
+      setSuccess(payload?.message || "Data dosen berhasil diimpor.");
+      await fetchDosen(); // Muat ulang tabel
+    } catch (err) {
+      console.error("Error import:", err);
+      setError(err?.message || "Terjadi kesalahan saat mengunggah file.");
+    } finally {
       setImporting(false);
       e.target.value = null; // Reset input file
-    };
-
-    reader.readAsText(file);
+    }
   };
 
   return (
@@ -1039,7 +1034,6 @@ export default function DaftarDosen() {
                           <button
                             type="button"
                             onClick={() => handleDelete(row)}
-                            disabled={deletingId === row.id}
                             className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
                           >
                             {deletingId === row.id ? "Menghapus..." : "Hapus"}
@@ -1069,7 +1063,7 @@ export default function DaftarDosen() {
                     disabled={loading}
                     className="rounded-xl bg-slate-700 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-600 disabled:opacity-60"
                   >
-                    {loading ? "Memuat…" : "Refresh"}
+                    {loading ? "Muat…" : "Refresh"}
                   </button>
                 </div>
               </div>
@@ -1320,15 +1314,6 @@ export default function DaftarDosen() {
                   >
                     Refresh
                   </button>
-                  {/* <button
-                    type="button"
-                    onClick={refreshTakenAllNow}
-                    className="shrink-0 rounded-xl bg-slate-700 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-600"
-                    title="Cek kelas terpakai semua dosen"
-                    disabled={takenAllLoading}
-                  >
-                    {takenAllLoading ? "Cek…" : "Cek Semua"}
-                  </button> */}
                 </div>
               </label>
 
