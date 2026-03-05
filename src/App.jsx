@@ -135,7 +135,7 @@ function AppContent() {
           <Route
             path="/lab609_merakit_pc"
             element={
-              <RequireAuth allowRoles={["asisten"]}>
+              <RequireAuth allowRoles={["asisten", "admin"]}>
                 <MerakitPc />
               </RequireAuth>
             }
@@ -143,7 +143,7 @@ function AppContent() {
           <Route
             path="/lab609_bios_partisi"
             element={
-              <RequireAuth allowRoles={["asisten"]}>
+              <RequireAuth allowRoles={["asisten", "admin"]}>
                 <MerakitPc />
               </RequireAuth>
             }
@@ -151,7 +151,7 @@ function AppContent() {
           <Route
             path="/lab609_jarkom"
             element={
-              <RequireAuth allowRoles={["asisten"]}>
+              <RequireAuth allowRoles={["asisten", "admin"]}>
                 <MerakitPc />
               </RequireAuth>
             }
@@ -159,7 +159,7 @@ function AppContent() {
           <Route
             path="/lab609_troubleshooting"
             element={
-              <RequireAuth allowRoles={["asisten"]}>
+              <RequireAuth allowRoles={["asisten", "admin"]}>
                 <MerakitPc />
               </RequireAuth>
             }
@@ -168,7 +168,7 @@ function AppContent() {
           <Route
             path="/history_detail/:idHistory"
             element={
-              <RequireAuth allowRoles={["asisten"]}>
+              <RequireAuth allowRoles={["asisten", "admin"]}>
                 <Detail />
               </RequireAuth>
             }
@@ -178,7 +178,7 @@ function AppContent() {
           <Route
             path="/form_merakit_pc"
             element={
-              <RequireAuth allowRoles={["asisten"]}>
+              <RequireAuth allowRoles={["asisten", "admin"]}>
                 <FormMerakitPc />
               </RequireAuth>
             }
@@ -186,7 +186,7 @@ function AppContent() {
           <Route
             path="/form_bios_partisi"
             element={
-              <RequireAuth allowRoles={["asisten"]}>
+              <RequireAuth allowRoles={["asisten", "admin"]}>
                 <FormBiosPartisi />
               </RequireAuth>
             }
@@ -194,7 +194,7 @@ function AppContent() {
           <Route
             path="/form_jarkom"
             element={
-              <RequireAuth allowRoles={["asisten"]}>
+              <RequireAuth allowRoles={["asisten", "admin"]}>
                 <FormJarkom />
               </RequireAuth>
             }
@@ -202,7 +202,7 @@ function AppContent() {
           <Route
             path="/form_troubleshooting"
             element={
-              <RequireAuth allowRoles={["asisten"]}>
+              <RequireAuth allowRoles={["asisten", "admin"]}>
                 <FormTroubleShooting />
               </RequireAuth>
             }
@@ -212,7 +212,7 @@ function AppContent() {
           <Route
             path="/lab610_merakit_pc"
             element={
-              <RequireAuth allowRoles={["asisten"]}>
+              <RequireAuth allowRoles={["asisten", "admin"]}>
                 <MerakitPc610 />
               </RequireAuth>
             }
@@ -220,7 +220,7 @@ function AppContent() {
           <Route
             path="/lab610_bios_partisi"
             element={
-              <RequireAuth allowRoles={["asisten"]}>
+              <RequireAuth allowRoles={["asisten", "admin"]}>
                 <MerakitPc610 />
               </RequireAuth>
             }
@@ -236,7 +236,7 @@ function AppContent() {
           <Route
             path="/lab610_troubleshooting"
             element={
-              <RequireAuth allowRoles={["asisten"]}>
+              <RequireAuth allowRoles={["asisten", "admin"]}>
                 <MerakitPc610 />
               </RequireAuth>
             }
@@ -246,7 +246,7 @@ function AppContent() {
           <Route
             path="/form_merakit_pc"
             element={
-              <RequireAuth allowRoles={["asisten"]}>
+              <RequireAuth allowRoles={["asisten", "admin"]}>
                 <FormMerakitPc />
               </RequireAuth>
             }
@@ -254,7 +254,7 @@ function AppContent() {
           <Route
             path="/form_bios_partisi"
             element={
-              <RequireAuth allowRoles={["asisten"]}>
+              <RequireAuth allowRoles={["asisten", "admin"]}>
                 <FormBiosPartisi />
               </RequireAuth>
             }
@@ -262,7 +262,7 @@ function AppContent() {
           <Route
             path="/form_jarkom"
             element={
-              <RequireAuth allowRoles={["asisten"]}>
+              <RequireAuth allowRoles={["asisten", "admin"]}>
                 <FormJarkom />
               </RequireAuth>
             }
@@ -270,7 +270,7 @@ function AppContent() {
           <Route
             path="/form_troubleshooting"
             element={
-              <RequireAuth allowRoles={["asisten"]}>
+              <RequireAuth allowRoles={["asisten", "admin"]}>
                 <FormTroubleShooting />
               </RequireAuth>
             }
