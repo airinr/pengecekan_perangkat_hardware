@@ -14,6 +14,9 @@ export default function DaftarDosen() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef(null);
+
   // === CONFIG API ===
   const API_BASE = import.meta.env.VITE_API_URL || "";
   const NGROK_HEADERS = { "ngrok-skip-browser-warning": "true" };
@@ -132,10 +135,10 @@ export default function DaftarDosen() {
       const list = Array.isArray(payload)
         ? payload
         : Array.isArray(payload?.data)
-        ? payload.data
-        : Array.isArray(payload?.dosen)
-        ? payload.dosen
-        : [];
+          ? payload.data
+          : Array.isArray(payload?.dosen)
+            ? payload.dosen
+            : [];
 
       const norm = list.map(normalizeDosen).filter((r) => r.nama);
       norm.sort((a, b) => String(a.nama).localeCompare(String(b.nama)));
@@ -329,17 +332,19 @@ export default function DaftarDosen() {
       const list = Array.isArray(payload)
         ? payload
         : Array.isArray(payload?.data)
-        ? payload.data
-        : Array.isArray(payload?.kelas)
-        ? payload.kelas
-        : [];
+          ? payload.data
+          : Array.isArray(payload?.kelas)
+            ? payload.kelas
+            : [];
 
       const options = list
         .map(normalizeKelas)
         .filter((o) => o.idKelas || o.label);
 
       options.sort((a, b) =>
-        String(a.idKelas || a.label).localeCompare(String(b.idKelas || b.label))
+        String(a.idKelas || a.label).localeCompare(
+          String(b.idKelas || b.label),
+        ),
       );
 
       setKelasOptions(options);
@@ -385,19 +390,19 @@ export default function DaftarDosen() {
               const arr = Array.isArray(payload)
                 ? payload
                 : Array.isArray(payload?.data)
-                ? payload.data
-                : Array.isArray(payload?.kelas)
-                ? payload.kelas
-                : [];
+                  ? payload.data
+                  : Array.isArray(payload?.kelas)
+                    ? payload.kelas
+                    : [];
               return arr.map((k) =>
                 typeof k === "string"
                   ? k
-                  : k?.nama ??
+                  : (k?.nama ??
                     k?.namaKelas ??
                     k?.kelas ??
                     k?.name ??
                     k?.code ??
-                    ""
+                    ""),
               );
             })
             .catch(() => []);
@@ -414,7 +419,7 @@ export default function DaftarDosen() {
         setTakenAllLoading(false);
       }
     },
-    [MAPEL_API.GET_KELAS_BY_DOSEN, rows]
+    [MAPEL_API.GET_KELAS_BY_DOSEN, rows],
   );
 
   const openClassModal = (row) => {
@@ -491,10 +496,10 @@ export default function DaftarDosen() {
         const arr = Array.isArray(payload)
           ? payload
           : Array.isArray(payload?.data)
-          ? payload.data
-          : Array.isArray(payload?.kelas)
-          ? payload.kelas
-          : [];
+            ? payload.data
+            : Array.isArray(payload?.kelas)
+              ? payload.kelas
+              : [];
 
         const kelas = arr.map((k) => {
           if (typeof k === "string") return k;
@@ -517,7 +522,7 @@ export default function DaftarDosen() {
         setDetailLoading(false);
       }
     },
-    [MAPEL_API.GET_KELAS_BY_DOSEN]
+    [MAPEL_API.GET_KELAS_BY_DOSEN],
   );
 
   const openDetailModal = async (row) => {
@@ -611,7 +616,7 @@ export default function DaftarDosen() {
     if (name === "tahunAjar" || name === "semester") {
       fetchTakenKelasAll(
         name === "tahunAjar" ? value : classForm.tahunAjar,
-        name === "semester" ? value : classForm.semester
+        name === "semester" ? value : classForm.semester,
       );
     }
   };
@@ -697,7 +702,7 @@ export default function DaftarDosen() {
       console.error(e2);
       setError(
         e2?.message ||
-          (isEditing ? "Gagal memperbarui dosen." : "Gagal menambahkan dosen.")
+          (isEditing ? "Gagal memperbarui dosen." : "Gagal menambahkan dosen."),
       );
     } finally {
       setSubmitting(false);
@@ -810,6 +815,59 @@ export default function DaftarDosen() {
     }
   };
 
+  const handleImportCSV = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setImporting(true);
+    setError("");
+    setSuccess("");
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const text = event.target.result;
+      const lines = text.split("\n");
+      // Asumsi baris pertama adalah header: nama
+      const data = lines
+        .slice(1)
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+      let successCount = 0;
+      let failCount = 0;
+
+      const token = localStorage.getItem("token");
+
+      for (const nama of data) {
+        try {
+          const res = await fetch(DOSEN_API.ADD_DOSEN_SIMPLE, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              ...NGROK_HEADERS,
+            },
+            body: JSON.stringify({ namaDosen: nama }),
+          });
+          if (res.ok) successCount++;
+          else failCount++;
+        } catch (err) {
+          failCount++;
+        }
+      }
+
+      setSuccess(
+        `${successCount} dosen berhasil diimpor.${failCount > 0 ? ` ${failCount} gagal.` : ""}`,
+      );
+      fetchDosen();
+      setImporting(false);
+      e.target.value = null; // Reset input file
+    };
+
+    reader.readAsText(file);
+  };
+
   return (
     <div className="lg:ml-56 ">
       {/* Header */}
@@ -822,6 +880,39 @@ export default function DaftarDosen() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {/* Input File Tersembunyi */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImportCSV}
+              accept=".csv"
+              className="hidden"
+            />
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current.click()}
+              disabled={importing}
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-600 disabled:opacity-60"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                />
+              </svg>
+              {importing ? "Mengimpor..." : "Import CSV"}
+            </button>
+
+            {/* Tombol Tambah Dosen yang sudah ada */}
             <button
               type="button"
               onClick={openAddQuickModal}
@@ -829,6 +920,8 @@ export default function DaftarDosen() {
             >
               + Tambah Dosen
             </button>
+
+            {/* Tombol Refresh yang sudah ada */}
             <button
               type="button"
               onClick={fetchDosen}
@@ -1121,8 +1214,8 @@ export default function DaftarDosen() {
                   {submitting
                     ? "Menyimpan..."
                     : isEditing
-                    ? "Simpan Perubahan"
-                    : "Simpan"}
+                      ? "Simpan Perubahan"
+                      : "Simpan"}
                 </button>
                 <button
                   type="button"

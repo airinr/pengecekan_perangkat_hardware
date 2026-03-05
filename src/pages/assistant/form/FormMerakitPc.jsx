@@ -133,7 +133,7 @@ export default function FormMerakitPc() {
       awal: "",
       akhir: "",
       kerusakan: "",
-    }))
+    })),
   );
 
   const [tindakLanjut, setTindakLanjut] = useState("");
@@ -154,7 +154,7 @@ export default function FormMerakitPc() {
 
   const handleRowChange = (id, key, value) => {
     setRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, [key]: value } : r))
+      prev.map((r) => (r.id === id ? { ...r, [key]: value } : r)),
     );
   };
 
@@ -200,7 +200,7 @@ export default function FormMerakitPc() {
           const info = nameToInfo.get(r.name.trim().toLowerCase());
           if (!info) return r;
           return { ...r, idBarang: info.idBarang, awal: info.jn };
-        })
+        }),
       );
     } catch (err) {
       console.error(err);
@@ -251,17 +251,17 @@ export default function FormMerakitPc() {
       const list = Array.isArray(payload)
         ? payload
         : Array.isArray(payload?.data)
-        ? payload.data
-        : Array.isArray(payload?.dosen)
-        ? payload.dosen
-        : [];
+          ? payload.data
+          : Array.isArray(payload?.dosen)
+            ? payload.dosen
+            : [];
       const parsed = list.map(parseDosen).filter((x) => x.id && x.label);
       const uniqMap = new Map();
       parsed.forEach((x) => {
         if (!uniqMap.has(x.id)) uniqMap.set(x.id, x);
       });
       const uniq = Array.from(uniqMap.values()).sort((a, b) =>
-        a.label.localeCompare(b.label)
+        a.label.localeCompare(b.label),
       );
       setDosenOptions(uniq);
     } catch (e) {
@@ -316,7 +316,7 @@ export default function FormMerakitPc() {
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
               ...NGROK_HEADERS,
             },
-          }
+          },
         );
         if (!res.ok) {
           const msg =
@@ -328,14 +328,14 @@ export default function FormMerakitPc() {
         const list = Array.isArray(payload)
           ? payload
           : Array.isArray(payload?.data)
-          ? payload.data
-          : Array.isArray(payload?.kelas)
-          ? payload.kelas
-          : [];
+            ? payload.data
+            : Array.isArray(payload?.kelas)
+              ? payload.kelas
+              : [];
         const parsed = list.map(parseKelas).filter((x) => x.id && x.label);
         setKelasOptions(parsed);
         setHeader((h) =>
-          parsed.some((k) => k.id === h.idKelas) ? h : { ...h, idKelas: "" }
+          parsed.some((k) => k.id === h.idKelas) ? h : { ...h, idKelas: "" },
         );
       } catch (e) {
         console.error(e);
@@ -347,7 +347,7 @@ export default function FormMerakitPc() {
         setKelasLoading(false);
       }
     },
-    [API_BASE, tahunAjar, semester, dosenOptions]
+    [API_BASE, tahunAjar, semester, dosenOptions],
   );
 
   useEffect(() => {
@@ -375,14 +375,14 @@ export default function FormMerakitPc() {
   const onSubmit = async (e) => {
     e.preventDefault();
 
-    if (!labCode) return openError("Kode lab (lab) tidak ditemukan di URL.");
+    if (!labCode) return openError("LAB tidak ditemukan di URL.");
     if (!kodePraktikum)
-      return openError("Kode praktikum (kode) tidak ditemukan di URL.");
+      return openError("KODE praktikum tidak ditemukan di URL.");
 
-    // VALIDASI “bahasa manusia”
+    // Validasi → tampil via popup
     if (!header.tanggal) return openError("tanggal");
-    if (!header.idDosen) return openError("dosen");
-    if (!header.idKelas) return openError("kelas");
+    if (!header.idDosen) return openError("idDosen");
+    if (!header.idKelas) return openError("idKelas");
     if (!header.waktuMulai) return openError("waktu");
 
     // ✅ Foto wajib diisi (frontend)
@@ -392,12 +392,12 @@ export default function FormMerakitPc() {
       .map((r) => ({
         idBarang: (r.idBarang || "").trim(),
         jumlahAkhir: Number.isFinite(Number(r.akhir)) ? Number(r.akhir) : 0,
+        catatan: r.kerusakan || "", // ✅ Menambahkan variabel catatan
       }))
       .filter((x) => x.idBarang);
 
     if (dataAlat.length === 0) return openError("dataAlat");
 
-    // format HH:MM:SS
     const waktuWithSeconds =
       header.waktuMulai.length === 5
         ? `${header.waktuMulai}:00`
@@ -421,11 +421,10 @@ export default function FormMerakitPc() {
           method: "POST",
           headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           body: fd,
-        }
+        },
       );
 
       if (!res.ok) {
-        // coba ambil error server biar lebih “manusiawi”
         let text = "";
         try {
           text = await res.text();
@@ -433,7 +432,6 @@ export default function FormMerakitPc() {
         throw new Error(text || `HTTP ${res.status}`);
       }
 
-      // sukses
       alert("Laporan praktikum berhasil dikirim.");
       setTindakLanjut("");
       setFotoFile(null);
@@ -441,10 +439,9 @@ export default function FormMerakitPc() {
       setRows((prev) => prev.map((r) => ({ ...r, akhir: "", kerusakan: "" })));
     } catch (err) {
       console.error(err);
-      openError(err?.message || "Terjadi kesalahan saat menyimpan laporan.");
+      openError(err?.message || "Gagal menyimpan laporan.");
     }
   };
-
   return (
     <>
       <form
@@ -570,8 +567,8 @@ export default function FormMerakitPc() {
                   {!header.idDosen
                     ? "Pilih dosen dulu"
                     : kelasLoading
-                    ? "Memuat kelas…"
-                    : "Pilih kelas…"}
+                      ? "Memuat kelas…"
+                      : "Pilih kelas…"}
                 </option>
                 {kelasOptions.map((k) => (
                   <option key={k.id} value={k.id}>
