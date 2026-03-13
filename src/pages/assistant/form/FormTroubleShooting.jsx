@@ -40,8 +40,8 @@ const humanizeError = (raw = "") => {
     return "Isi minimal satu peralatan: cantumkan ID Barang dan Jumlah Akhir.";
    if (t.includes("tindak lanjut") || t.includes("tindaklanjut"))
     return "Tindak lanjut wajib diisi. Tuliskan rencana perbaikan atau penggantian.";
-  if (t.includes("catatan"))
-    return "Catatan wajib diisi untuk minimal satu item peralatan.";
+  if (msg.includes("catatan"))
+    return "Catatan wajib diisi untuk perangkat yang jumlah akhirnya berbeda dari jumlah awal.";
 
   // Fallback: tampilkan apa adanya kalau ada, atau default
   return raw || "Terjadi kesalahan yang tidak diketahui.";
@@ -378,9 +378,14 @@ export default function FormTroubleShooting() {
     if (!header.waktuMulai) return openError("waktu");
 
     if (!tindakLanjut.trim()) return openError("Tindak Lanjut harus terisi");
+    const adaCatatanKurang = rows.some(
+      (r) =>
+        r.idBarang &&
+        r.akhir !== "" &&
+        Number(r.akhir) !== Number(r.awal) &&
+        r.kerusakan.trim() === ""
+    );
 
-    const adaCatatan = rows.some((r) => r.kerusakan.trim() !== "");
-    if (!adaCatatan) return openError("Catatan wajib diisi untuk minimal satu item peralatan.");
     if (!fotoFile) {
       setShowFotoAlert(true); // popup jika foto kosong
       return;

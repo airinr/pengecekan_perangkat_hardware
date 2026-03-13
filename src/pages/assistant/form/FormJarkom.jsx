@@ -81,7 +81,7 @@ const humanizeError = (raw = "") => {
   if (msg.includes("tindak lanjut") || msg.includes("tindaklanjut"))
     return "Tindak lanjut wajib diisi. Tuliskan rencana perbaikan atau penggantian.";
   if (msg.includes("catatan"))
-    return "Catatan wajib diisi untuk minimal satu item peralatan.";
+    return "Catatan wajib diisi untuk perangkat yang jumlah akhirnya berbeda dari jumlah awal.";
 
   // ✅ terjemahan khusus error foto (frontend & backend)
   if (
@@ -392,9 +392,13 @@ export default function FormJarkom() {
     if (!header.idKelas) return openError("idKelas");
     if (!header.waktuMulai) return openError("waktu");
     if (!tindakLanjut.trim()) return openError("Tindak Lanjut harus terisi");
-
-    const adaCatatan = rows.some((r) => r.kerusakan.trim() !== "");
-    if (!adaCatatan) return openError("Catatan wajib diisi untuk minimal satu item peralatan.");
+    const adaCatatanKurang = rows.some(
+      (r) =>
+        r.idBarang &&
+        r.akhir !== "" &&
+        Number(r.akhir) !== Number(r.awal) &&
+        r.kerusakan.trim() === ""
+    );
 
     // ✅ Foto wajib diisi (frontend)
     if (!fotoFile) return openError("foto");
