@@ -82,6 +82,7 @@ const humanizeError = (raw = "") => {
     msg.includes("foto")
   )
     return "Foto wajib di isi. Silakan unggah dokumentasi praktikum terlebih dahulu.";
+    
 
   // fallback
   if (!raw) return "Terjadi kesalahan yang tidak diketahui.";
@@ -385,6 +386,11 @@ export default function FormMerakitPc() {
     if (!header.idKelas) return openError("kelas");
     if (!header.waktuMulai) return openError("waktu");
 
+    if (!tindakLanjut.trim()) return openError("Tindak Lanjut harus terisi");
+
+    const adaCatatan = rows.some((r) => r.kerusakan.trim() !== "");
+    if (!adaCatatan) return openError("Catatan wajib diisi untuk minimal satu item peralatan.");
+
     // ✅ Foto wajib diisi (frontend)
     if (!fotoFile) return openError("foto");
 
@@ -646,7 +652,8 @@ export default function FormMerakitPc() {
                   <th className="px-4 py-3 w-28 text-slate-200">
                     Jumlah Akhir
                   </th>
-                  <th className="px-4 py-3 w-64 text-slate-200">Catatan</th>
+                  <th className="px-4 py-3 w-64 text-slate-200">
+                    Catatan <span className="text-red-400">*</span></th>     
                 </tr>
               </thead>
               <tbody>
@@ -711,7 +718,7 @@ export default function FormMerakitPc() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
             <div>
               <label className="block text-sm font-medium mb-1">
-                Tindak lanjut
+              Tindak lanjut <span className="text-red-400">*</span>
               </label>
               <textarea
                 rows={4}

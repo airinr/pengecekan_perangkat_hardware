@@ -38,6 +38,10 @@ const humanizeError = (raw = "") => {
   if (t.includes("waktu")) return "Isi waktu mulai (HH:MM) terlebih dahulu.";
   if (t.includes("dataalat") || t.includes("idbarang"))
     return "Isi minimal satu peralatan: cantumkan ID Barang dan Jumlah Akhir.";
+   if (t.includes("tindak lanjut") || t.includes("tindaklanjut"))
+    return "Tindak lanjut wajib diisi. Tuliskan rencana perbaikan atau penggantian.";
+  if (t.includes("catatan"))
+    return "Catatan wajib diisi untuk minimal satu item peralatan.";
 
   // Fallback: tampilkan apa adanya kalau ada, atau default
   return raw || "Terjadi kesalahan yang tidak diketahui.";
@@ -372,6 +376,10 @@ export default function FormTroubleShooting() {
     if (!header.idDosen) return openError("idDosen");
     if (!header.idKelas) return openError("idKelas");
     if (!header.waktuMulai) return openError("waktu");
+    if (!tindakLanjut.trim()) return openError("Tindak Lanjut harus terisi");
+
+    const adaCatatan = rows.some((r) => r.kerusakan.trim() !== "");
+    if (!adaCatatan) return openError("Catatan wajib diisi untuk minimal satu item peralatan.");
     if (!fotoFile) {
       setShowFotoAlert(true); // popup jika foto kosong
       return;
@@ -626,7 +634,9 @@ export default function FormTroubleShooting() {
                 <th className="px-4 py-3 w-40 text-slate-200">ID Barang</th>
                 <th className="px-4 py-3 w-28 text-slate-200">Jumlah Awal</th>
                 <th className="px-4 py-3 w-28 text-slate-200">Jumlah Akhir</th>
-                <th className="px-4 py-3 w-64 text-slate-200">Catatan</th>
+                <th className="px-4 py-3 w-64 text-slate-200">
+                    Catatan <span className="text-red-400">*</span>
+                  </th>
               </tr>
             </thead>
             <tbody>
@@ -691,8 +701,8 @@ export default function FormTroubleShooting() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
           <div>
             <label className="block text-sm font-medium mb-1">
-              Tindak lanjut
-            </label>
+                Tindak lanjut <span className="text-red-400">*</span>
+              </label>
             <textarea
               rows={4}
               value={tindakLanjut}

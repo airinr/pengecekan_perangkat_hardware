@@ -78,6 +78,10 @@ const humanizeError = (raw = "") => {
   if (msg.includes("waktu")) return "Isi waktu mulai (HH:MM) terlebih dahulu.";
   if (msg.includes("dataalat") || msg.includes("idbarang"))
     return "Isi minimal satu peralatan: ID Barang dan Jumlah Akhir.";
+  if (msg.includes("tindak lanjut") || msg.includes("tindaklanjut"))
+    return "Tindak lanjut wajib diisi. Tuliskan rencana perbaikan atau penggantian.";
+  if (msg.includes("catatan"))
+    return "Catatan wajib diisi untuk minimal satu item peralatan.";
 
   // ✅ terjemahan khusus error foto (frontend & backend)
   if (
@@ -387,6 +391,10 @@ export default function FormJarkom() {
     if (!header.idDosen) return openError("dosen");
     if (!header.idKelas) return openError("kelas");
     if (!header.waktuMulai) return openError("waktu");
+    if (!tindakLanjut.trim()) return openError("Tindak Lanjut harus terisi");
+
+    const adaCatatan = rows.some((r) => r.kerusakan.trim() !== "");
+    if (!adaCatatan) return openError("Catatan wajib diisi untuk minimal satu item peralatan.");
 
     // ✅ Foto wajib diisi
     if (!fotoFile) return openError("foto");
@@ -647,7 +655,9 @@ export default function FormJarkom() {
                   <th className="px-4 py-3 w-36 text-slate-200">
                     Jumlah Akhir
                   </th>
-                  <th className="px-4 py-3 w-64 text-slate-200">Catatan</th>
+                  <th className="px-4 py-3 w-64 text-slate-200">
+                    Catatan <span className="text-red-400">*</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -696,7 +706,7 @@ export default function FormJarkom() {
                         type="text"
                         value={r.kerusakan}
                         onChange={(e) =>
-                          handleRowChange(r.id, "Catatan", e.target.value)
+                          handleRowChange(r.id, "kerusakan", e.target.value)
                         }
                         className="w-full rounded-md border border-slate-700 bg-slate-950 text-slate-100 placeholder:text-slate-400 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-slate-600"
                         placeholder="cth: LAN Tester error"
@@ -712,7 +722,7 @@ export default function FormJarkom() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
             <div>
               <label className="block text-sm font-medium mb-1">
-                Tindak lanjut
+                Tindak lanjut <span className="text-red-400">*</span>
               </label>
               <textarea
                 rows={4}
