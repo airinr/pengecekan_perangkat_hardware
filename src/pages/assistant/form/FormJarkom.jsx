@@ -134,7 +134,7 @@ export default function FormJarkom() {
       awal: "",
       akhir: "",
       kerusakan: "",
-    }))
+    })),
   );
 
   const [tindakLanjut, setTindakLanjut] = useState("");
@@ -155,7 +155,7 @@ export default function FormJarkom() {
 
   const handleRowChange = (id, key, value) => {
     setRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, [key]: value } : r))
+      prev.map((r) => (r.id === id ? { ...r, [key]: value } : r)),
     );
   };
 
@@ -206,7 +206,7 @@ export default function FormJarkom() {
           const info = nameToInfo.get(r.name.trim().toLowerCase());
           if (!info) return r;
           return { ...r, idBarang: info.idBarang, awal: info.awal };
-        })
+        }),
       );
     } catch (err) {
       console.error(err);
@@ -257,17 +257,17 @@ export default function FormJarkom() {
       const list = Array.isArray(payload)
         ? payload
         : Array.isArray(payload?.data)
-        ? payload.data
-        : Array.isArray(payload?.dosen)
-        ? payload.dosen
-        : [];
+          ? payload.data
+          : Array.isArray(payload?.dosen)
+            ? payload.dosen
+            : [];
       const parsed = list.map(parseDosen).filter((x) => x.id && x.label);
       const uniqMap = new Map();
       parsed.forEach((x) => {
         if (!uniqMap.has(x.id)) uniqMap.set(x.id, x);
       });
       const uniq = Array.from(uniqMap.values()).sort((a, b) =>
-        a.label.localeCompare(b.label)
+        a.label.localeCompare(b.label),
       );
       setDosenOptions(uniq);
     } catch (e) {
@@ -316,7 +316,7 @@ export default function FormJarkom() {
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
               ...NGROK_HEADERS,
             },
-          }
+          },
         );
         if (!res.ok) {
           const msg =
@@ -328,10 +328,10 @@ export default function FormJarkom() {
         const list = Array.isArray(payload)
           ? payload
           : Array.isArray(payload?.data)
-          ? payload.data
-          : Array.isArray(payload?.kelas)
-          ? payload.kelas
-          : [];
+            ? payload.data
+            : Array.isArray(payload?.kelas)
+              ? payload.kelas
+              : [];
         const parsed = list
           .map((k) => ({
             id: k?.idKelas || k?.kodeKelas || k?.id || "",
@@ -341,7 +341,7 @@ export default function FormJarkom() {
 
         setKelasOptions(parsed);
         setHeader((h) =>
-          parsed.some((k) => k.id === h.idKelas) ? h : { ...h, idKelas: "" }
+          parsed.some((k) => k.id === h.idKelas) ? h : { ...h, idKelas: "" },
         );
       } catch (e) {
         console.error(e);
@@ -353,7 +353,7 @@ export default function FormJarkom() {
         setKelasLoading(false);
       }
     },
-    [API_BASE, tahunAjar, semester, dosenOptions]
+    [API_BASE, tahunAjar, semester, dosenOptions],
   );
 
   // Re-fetch kelas saat idDosen/tahun/semester berubah
@@ -386,29 +386,29 @@ export default function FormJarkom() {
     if (!kodePraktikum)
       return openError("KODE praktikum tidak ditemukan di URL.");
 
-    // VALIDASI -> tampilkan popup dalam bahasa manusia
+    // Validasi → tampil via popup
     if (!header.tanggal) return openError("tanggal");
-    if (!header.idDosen) return openError("dosen");
-    if (!header.idKelas) return openError("kelas");
+    if (!header.idDosen) return openError("idDosen");
+    if (!header.idKelas) return openError("idKelas");
     if (!header.waktuMulai) return openError("waktu");
     if (!tindakLanjut.trim()) return openError("Tindak Lanjut harus terisi");
 
     const adaCatatan = rows.some((r) => r.kerusakan.trim() !== "");
     if (!adaCatatan) return openError("Catatan wajib diisi untuk minimal satu item peralatan.");
 
-    // ✅ Foto wajib diisi
+    // ✅ Foto wajib diisi (frontend)
     if (!fotoFile) return openError("foto");
 
     const dataAlat = rows
       .map((r) => ({
         idBarang: (r.idBarang || "").trim(),
         jumlahAkhir: Number.isFinite(Number(r.akhir)) ? Number(r.akhir) : 0,
+        catatan: r.kerusakan || "", // ✅ Menambahkan variabel catatan
       }))
       .filter((x) => x.idBarang);
 
     if (dataAlat.length === 0) return openError("dataAlat");
 
-    // Backend butuh HH:MM:SS
     const waktuWithSeconds =
       header.waktuMulai.length === 5
         ? `${header.waktuMulai}:00`
@@ -432,7 +432,7 @@ export default function FormJarkom() {
           method: "POST",
           headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           body: fd,
-        }
+        },
       );
 
       if (!res.ok) {
@@ -579,8 +579,8 @@ export default function FormJarkom() {
                   {!header.idDosen
                     ? "Pilih dosen dulu"
                     : kelasLoading
-                    ? "Memuat kelas…"
-                    : "Pilih kelas…"}
+                      ? "Memuat kelas…"
+                      : "Pilih kelas…"}
                 </option>
                 {kelasOptions.map((k) => (
                   <option key={k.id} value={k.id}>

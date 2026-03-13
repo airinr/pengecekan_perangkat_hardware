@@ -131,7 +131,7 @@ export default function FormBiosPartisi() {
       awal: "",
       akhir: "",
       kerusakan: "",
-    }))
+    })),
   );
 
   const [tindakLanjut, setTindakLanjut] = useState("");
@@ -152,7 +152,7 @@ export default function FormBiosPartisi() {
 
   const handleRowChange = (id, key, value) => {
     setRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, [key]: value } : r))
+      prev.map((r) => (r.id === id ? { ...r, [key]: value } : r)),
     );
   };
 
@@ -199,7 +199,7 @@ export default function FormBiosPartisi() {
           const info = nameToInfo.get(r.name.trim().toLowerCase());
           if (!info) return r;
           return { ...r, idBarang: info.idBarang, awal: info.jn };
-        })
+        }),
       );
     } catch (err) {
       console.error(err);
@@ -250,10 +250,10 @@ export default function FormBiosPartisi() {
       const list = Array.isArray(payload)
         ? payload
         : Array.isArray(payload?.data)
-        ? payload.data
-        : Array.isArray(payload?.dosen)
-        ? payload.dosen
-        : [];
+          ? payload.data
+          : Array.isArray(payload?.dosen)
+            ? payload.dosen
+            : [];
       const parsed = list.map(parseDosen).filter((x) => x.id && x.label);
 
       // unique by id + sort label
@@ -262,7 +262,7 @@ export default function FormBiosPartisi() {
         if (!uniqMap.has(x.id)) uniqMap.set(x.id, x);
       });
       const uniq = Array.from(uniqMap.values()).sort((a, b) =>
-        a.label.localeCompare(b.label)
+        a.label.localeCompare(b.label),
       );
       setDosenOptions(uniq);
     } catch (e) {
@@ -311,7 +311,7 @@ export default function FormBiosPartisi() {
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
               ...NGROK_HEADERS,
             },
-          }
+          },
         );
         if (!res.ok) {
           const msg =
@@ -323,10 +323,10 @@ export default function FormBiosPartisi() {
         const list = Array.isArray(payload)
           ? payload
           : Array.isArray(payload?.data)
-          ? payload.data
-          : Array.isArray(payload?.kelas)
-          ? payload.kelas
-          : [];
+            ? payload.data
+            : Array.isArray(payload?.kelas)
+              ? payload.kelas
+              : [];
 
         const parsed = list
           .map((k) => ({
@@ -337,7 +337,7 @@ export default function FormBiosPartisi() {
 
         setKelasOptions(parsed);
         setHeader((h) =>
-          parsed.some((k) => k.id === h.idKelas) ? h : { ...h, idKelas: "" }
+          parsed.some((k) => k.id === h.idKelas) ? h : { ...h, idKelas: "" },
         );
       } catch (e) {
         console.error(e);
@@ -349,7 +349,7 @@ export default function FormBiosPartisi() {
         setKelasLoading(false);
       }
     },
-    [API_BASE, tahunAjar, semester, dosenOptions]
+    [API_BASE, tahunAjar, semester, dosenOptions],
   );
 
   // Re-fetch kelas saat idDosen/tahun/semester berubah
@@ -398,6 +398,7 @@ export default function FormBiosPartisi() {
       .map((r) => ({
         idBarang: (r.idBarang || "").trim(),
         jumlahAkhir: Number.isFinite(Number(r.akhir)) ? Number(r.akhir) : 0,
+        catatan: r.kerusakan || "", // ✅ Menambahkan variabel catatan
       }))
       .filter((x) => x.idBarang);
 
@@ -426,7 +427,7 @@ export default function FormBiosPartisi() {
           method: "POST",
           headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           body: fd,
-        }
+        },
       );
 
       if (!res.ok) {
@@ -573,8 +574,8 @@ export default function FormBiosPartisi() {
                   {!header.idDosen
                     ? "Pilih dosen dulu"
                     : kelasLoading
-                    ? "Memuat kelas…"
-                    : "Pilih kelas…"}
+                      ? "Memuat kelas…"
+                      : "Pilih kelas…"}
                 </option>
                 {kelasOptions.map((k) => (
                   <option key={k.id} value={k.id}>
