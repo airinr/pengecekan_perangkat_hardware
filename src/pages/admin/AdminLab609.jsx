@@ -8,7 +8,8 @@ import React, {
   useRef,
 } from "react";
 import { useNavigate } from "react-router-dom";
-import { Table } from "../../components/DefaultTable";
+import { Table } from "@/components/ui/DataTable";
+import { praktikumPath } from "@/features/praktikum/constants";
 
 const STATUS_COMPLETE = "Lengkap";
 const STATUS_INCOMPLETE = "Tidak Lengkap";
@@ -16,24 +17,10 @@ const STATUS_INCOMPLETE = "Tidak Lengkap";
 const API_BASE = import.meta.env.VITE_API_URL || "";
 const NGROK_HEADERS = { "ngrok-skip-browser-warning": "true" };
 
-// Kode Lab 610 (tetap dikirim sebagai ?lab=…)
-const LAB_ID = "LAB00002";
+// Kode Lab (dipakai untuk API datalab).
+const LAB_ID = "LAB00001";
 
-// Mapping PATH -> KODE PRAKTIKUM (pakai /lab610_*)
-const PRAKTIKUM_CODES = {
-  "/lab610_merakit_pc": "PRTK00001",
-  "/lab610_bios_partisi": "PRTK00002",
-  "/lab610_jarkom": "PRTK00003",
-  "/lab610_troubleshooting": "PRTK00004",
-};
-
-// Bangun URL dengan urutan query PASTI: ?kode=…&lab=…
-const toUrl = (path, kode, lab) =>
-  `${path}?kode=${encodeURIComponent(kode || "")}&lab=${encodeURIComponent(
-    lab || "",
-  )}`;
-
-export default function Lab610() {
+export default function AdminLab609() {
   const navigate = useNavigate();
 
   // ======= State data utama =======
@@ -43,15 +30,15 @@ export default function Lab610() {
 
   // ======= UX helpers =======
   const [q, setQ] = useState(""); // pencarian nama perangkat
-  const [sortKey, setSortKey] = useState("no"); // default index asc
+  const [sortKey, setSortKey] = useState("no"); // default index
   const [sortDir, setSortDir] = useState("asc"); // asc | desc
 
-  // ======= Barang (untuk Add & Deskripsi) =======
+  // ======= Barang (untuk Add) =======
   const [barangOptions, setBarangOptions] = useState([]);
   const [barangLoading, setBarangLoading] = useState(false);
   const [barangErr, setBarangErr] = useState("");
 
-  // ======= Modal Tambah/Edit =======
+  // ======= Modal =======
   const [showModal, setShowModal] = useState(false);
   const [mode, setMode] = useState("add"); // add | edit
   const [editingId, setEditingId] = useState(null);
@@ -63,46 +50,16 @@ export default function Lab610() {
     status: STATUS_COMPLETE,
   });
 
-  // ✅ ======= Modal Konfirmasi Reports (SAMA DENGAN LAB609) =======
+  // ✅ ======= Modal Konfirmasi Reports (BARU) =======
   const [showConfirm, setShowConfirm] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
-
-  // ✅ UX: animasi & ESC close (SAMA)
-  const confirmRef = useRef(null);
-  useEffect(() => {
-    if (!showConfirm) return;
-
-    const onKeyDown = (e) => {
-      if (e.key === "Escape") {
-        setShowConfirm(false);
-        setSelectedRow(null);
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    setTimeout(() => confirmRef.current?.focus?.(), 0);
-
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [showConfirm]);
 
   const onChangeForm = (e) => {
     const { name, value } = e.target;
     setForm((f) => ({ ...f, [name]: value }));
   };
-  const resetForm = () =>
-    setForm({
-      idBarang: "",
-      nama: "",
-      jumlahNormal: "",
-      jumlahRusak: "",
-      status: STATUS_COMPLETE,
-    });
 
-  // ======= Modal Deskripsi =======
-  const [showDesc, setShowDesc] = useState(false);
-  const [descContent, setDescContent] = useState({ nama: "", deskripsi: "" });
-
-  // ======= Normalizer barang (tambahkan deskripsiBarang) =======
+  // ======= Normalizer barang (DIPINDAH KE ATAS) =======
   const normalizeBarang = (b) => {
     const idBarang =
       b?.idBarang ?? b?.barangId ?? b?.id ?? b?._id ?? b?.kode ?? "";
@@ -121,7 +78,7 @@ export default function Lab610() {
     };
   };
 
-  // ======= Ambil daftar barang =======
+  // ======= Ambil daftar barang (DIPINDAH KE ATAS) =======
   const fetchBarangOptions = useCallback(async () => {
     setBarangLoading(true);
     setBarangErr("");
@@ -161,12 +118,41 @@ export default function Lab610() {
     }
   }, []);
 
-  // ======= Map cepat idBarang -> detail (untuk Deskripsi) =======
-  const barangById = useMemo(() => {
-    const m = {};
-    for (const o of barangOptions) m[o.idBarang] = o;
-    return m;
-  }, [barangOptions]);
+  // NEW ======= Modal Deskripsi =======
+  const [showDesc, setShowDesc] = useState(false);
+  const [descContent, setDescContent] = useState({ nama: "", deskripsi: "" });
+
+  // Penting: openDesc dideklarasikan SETELAH fetchBarangOptions agar tidak kena TDZ
+  const openDesc = useCallback(
+    async (row) => {
+      if (!barangOptions.length && !barangLoading) {
+        await fetchBarangOptions();
+      }
+      const info =
+        barangOptions.find(
+          (b) => String(b.idBarang) === String(row.idBarang),
+        ) || {};
+
+      const nama =
+        row?.nama ||
+        info?.namaBarang ||
+        String(row?.idBarang || "Tidak diketahui");
+      const deskripsi = info?.deskripsiBarang || "—";
+
+      setDescContent({ nama, deskripsi });
+      setShowDesc(true);
+    },
+    [barangOptions, barangLoading, fetchBarangOptions],
+  );
+
+  const resetForm = () =>
+    setForm({
+      idBarang: "",
+      nama: "",
+      jumlahNormal: "",
+      jumlahRusak: "",
+      status: STATUS_COMPLETE,
+    });
 
   // ======= Filter barang yang belum ditambahkan ke lab =======
   const selectableBarang = useMemo(() => {
@@ -178,6 +164,7 @@ export default function Lab610() {
     );
   }, [barangOptions, rows]);
 
+  // Pastikan pilihan add tidak hilang ketika daftar berubah
   useEffect(() => {
     if (mode !== "add" || !form.idBarang) return;
     const stillExists = selectableBarang.some(
@@ -191,7 +178,6 @@ export default function Lab610() {
   const fetchLabData = useCallback(async () => {
     setLoading(true);
     setError("");
-
     if (abortRef.current) abortRef.current.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -230,6 +216,7 @@ export default function Lab610() {
           (Number.isFinite(jumlahRusak) ? jumlahRusak : 0);
 
         const status = jumlahRusak > 0 ? STATUS_INCOMPLETE : STATUS_COMPLETE;
+
         return {
           id: `srv-${idx}`,
           no: idx + 1,
@@ -255,8 +242,10 @@ export default function Lab610() {
 
   useEffect(() => {
     fetchLabData();
+    // opsional: load opsi barang awal agar tombol Deskripsi siap
+    fetchBarangOptions();
     return () => abortRef.current && abortRef.current.abort();
-  }, [fetchLabData]);
+  }, [fetchLabData, fetchBarangOptions]);
 
   // ======= Derived data (filter + sort + re-index) =======
   const filteredSortedRows = useMemo(() => {
@@ -298,7 +287,7 @@ export default function Lab610() {
   }, [filteredSortedRows]);
 
   // ======= Actions =======
-  const openEdit = (row) => {
+  const openEdit = useCallback((row) => {
     setMode("edit");
     setEditingId(row.id);
     setForm({
@@ -310,26 +299,7 @@ export default function Lab610() {
       status: row.status ?? STATUS_COMPLETE,
     });
     setShowModal(true);
-  };
-
-  const openDesc = useCallback(
-    async (row) => {
-      if (!barangOptions.length && !barangLoading) {
-        await fetchBarangOptions();
-      }
-      const info = barangById[String(row?.idBarang || "")] || {};
-
-      const nama =
-        row?.nama ||
-        info?.namaBarang ||
-        String(row?.idBarang || "Tidak diketahui");
-      const deskripsi = info?.deskripsiBarang || "—";
-
-      setDescContent({ nama, deskripsi });
-      setShowDesc(true);
-    },
-    [barangOptions.length, barangLoading, fetchBarangOptions, barangById],
-  );
+  }, []);
 
   const onSubmitAdd = async (e) => {
     e.preventDefault();
@@ -399,7 +369,6 @@ export default function Lab610() {
 
       // ✅ Total = Normal - Rusak
       const total = jn - jr;
-
       const status = jr > 0 ? STATUS_INCOMPLETE : STATUS_COMPLETE;
       setRows((prev) =>
         prev.map((r) =>
@@ -420,20 +389,16 @@ export default function Lab610() {
   };
 
   const markResolved = async (row) => {
-    // ✅ kalau "resolved", Rusak jadi 0, Normal tetap seperti normal,
-    // dan Total = Normal - Rusak
-    const jn = Number(row.jumlahNormal ?? 0);
-    const newNormal = Number.isFinite(jn) ? jn : 0;
     const newRusak = 0;
 
+    // ✅ Update UI: jumlah = jumlahNormal - jumlahRusak
     setRows((prev) =>
       prev.map((r) =>
         r.id === row.id
           ? {
               ...r,
-              jumlahNormal: newNormal,
               jumlahRusak: newRusak,
-              jumlah: newNormal - newRusak, // ✅
+              jumlah: Number(r.jumlahNormal ?? 0) - newRusak,
               status: STATUS_COMPLETE,
             }
           : r,
@@ -454,7 +419,6 @@ export default function Lab610() {
         body: JSON.stringify([
           {
             idBarang: row.idBarang,
-            jumlahNormal: newNormal,
             jumlahRusak: newRusak,
           },
         ]),
@@ -506,7 +470,6 @@ export default function Lab610() {
             >
               Deskripsi
             </button>
-
             <button
               onClick={() => openEdit(row)}
               className="rounded-md bg-blue-600/90 px-3 py-1 text-xs text-white hover:bg-blue-500"
@@ -517,10 +480,10 @@ export default function Lab610() {
         ),
       },
     ],
-    [openDesc],
+    [openDesc, openEdit],
   );
 
-  // ======= Export CSV (mengikuti filter + sort + reindex) =======
+  // ======= Export CSV =======
   const exportCSV = () => {
     const header = [
       "No",
@@ -544,7 +507,7 @@ export default function Lab610() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `lab610_perangkat.csv`;
+    a.download = `lab609_perangkat.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -562,27 +525,25 @@ export default function Lab610() {
         id="topik"
         defaultValue=""
         onChange={(e) => {
-          const path = e.target.value; // /lab610_*
-          if (!path) return;
-          const kode = PRAKTIKUM_CODES[path] || "";
-          const next = toUrl(path, kode, LAB_ID); // ?kode=...&lab=...
-          navigate(next);
+          const slug = e.target.value;
+          if (!slug) return;
+          navigate(praktikumPath("609", slug));
         }}
-        className="mb-6 block w-full appearance-none rounded-lg border border-white/15 bg-slate-900/60 px-3 lg:px-8 py-2 pr-10 text-sm md:text-base text-slate-100"
+        className="mb-6 block w-full appearance-none rounded-lg border border-white/15 bg-slate-900/60 px-3 py-2 pr-9 text-sm text-slate-100"
       >
         <option value="" disabled>
           Pilih kategori
         </option>
-        <option value="/lab610_merakit_pc">Merakit Komputer</option>
-        <option value="/lab610_bios_partisi">Bios dan Partisi</option>
-        <option value="/lab610_jarkom">Jaringan Komputer</option>
-        <option value="/lab610_troubleshooting">Troubleshooting</option>
+        <option value="merakit-pc">Merakit Komputer</option>
+        <option value="bios-partisi">Bios dan Partisi</option>
+        <option value="jarkom">Jaringan Komputer</option>
+        <option value="troubleshooting">Troubleshooting</option>
       </select>
 
       {/* ===== Header + Actions ===== */}
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Perangkat Laboratorium 610</h1>
+          <h1 className="text-2xl font-bold">Perangkat Laboratorium 609</h1>
           <p className="text-sm text-slate-400">
             Pantau stok dan kondisi perangkat per laboratorium.
           </p>
@@ -703,7 +664,7 @@ export default function Lab610() {
         <Table columns={columns} data={filteredSortedRows} />
       </div>
 
-      {/* ===== Reports (otomatis muncul kalau ada yang rusak) ===== */}
+      {/* ===== Reports ===== */}
       {incompleteRows.length > 0 && (
         <div className="mt-10">
           <h2 className="mb-1 text-2xl font-bold">Reports</h2>
@@ -749,7 +710,7 @@ export default function Lab610() {
                           onChange={(e) => {
                             if (!e.target.checked) return;
 
-                            // ✅ buka modal konfirmasi (SAMA)
+                            // ✅ buka modal konfirmasi yang cantik
                             setSelectedRow(row);
                             setShowConfirm(true);
 
@@ -780,17 +741,12 @@ export default function Lab610() {
         </div>
       )}
 
-      {/* ✅ ===== Modal Konfirmasi Perbaikan (SAMA PESAN & UI) ===== */}
+      {/* ===== Modal Konfirmasi Perbaikan (CANTIK) ===== */}
       {showConfirm && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="confirm-title"
-        >
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Overlay */}
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-[2px] transition-opacity"
+            className="absolute inset-0 bg-black/60"
             onClick={() => {
               setShowConfirm(false);
               setSelectedRow(null);
@@ -798,65 +754,34 @@ export default function Lab610() {
           />
 
           {/* Card */}
-          <div
-            ref={confirmRef}
-            tabIndex={-1}
-            className="relative w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-slate-900 shadow-2xl outline-none
-                       animate-[pop_.16s_ease-out]"
-            style={{ transformOrigin: "center" }}
-          >
-            <style>{`
-              @keyframes pop {
-                0% { opacity: 0; transform: translateY(8px) scale(.98); }
-                100% { opacity: 1; transform: translateY(0) scale(1); }
-              }
-            `}</style>
-
+          <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-slate-900 shadow-2xl">
             {/* Header gradient */}
             <div className="bg-gradient-to-r from-blue-600/30 via-indigo-600/20 to-violet-600/30 px-6 py-5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="h-11 w-11 rounded-xl bg-blue-500/20 text-blue-300 grid place-items-center ring-1 ring-white/10">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-6 w-6"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M12 9v3m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                  </div>
-
-                  <div>
-                    <h3
-                      id="confirm-title"
-                      className="text-lg font-semibold text-white"
-                    >
-                      Konfirmasi Perbaikan
-                    </h3>
-                    <p className="text-xs text-slate-300">
-                      Pastikan data yang Anda input sudah benar.
-                    </p>
-                  </div>
+              <div className="flex items-center gap-3">
+                <div className="h-11 w-11 rounded-xl bg-blue-500/20 text-blue-300 grid place-items-center ring-1 ring-white/10">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 9v3m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
                 </div>
-
-                <button
-                  onClick={() => {
-                    setShowConfirm(false);
-                    setSelectedRow(null);
-                  }}
-                  className="rounded-xl p-2 text-slate-200/80 hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/20"
-                  aria-label="Tutup"
-                  title="Tutup (Esc)"
-                >
-                  ✕
-                </button>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">
+                    Konfirmasi Perbaikan
+                  </h3>
+                  <p className="text-xs text-slate-300">
+                    Pastikan data yang Anda input sudah benar.
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -886,11 +811,6 @@ export default function Lab610() {
                 </div>
               )}
 
-              <div className="mt-3 text-[11px] text-slate-400">
-                Tips: Klik luar popup atau tekan{" "}
-                <span className="font-semibold">Esc</span> untuk membatalkan.
-              </div>
-
               {/* Footer buttons */}
               <div className="mt-6 flex items-center justify-end gap-2">
                 <button
@@ -899,7 +819,7 @@ export default function Lab610() {
                     setShowConfirm(false);
                     setSelectedRow(null);
                   }}
-                  className="rounded-xl border border-white/15 px-4 py-2 text-sm text-slate-200 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/15"
+                  className="rounded-xl border border-white/15 px-4 py-2 text-sm text-slate-200 hover:bg-white/5"
                 >
                   Batal
                 </button>
@@ -911,7 +831,7 @@ export default function Lab610() {
                     setShowConfirm(false);
                     setSelectedRow(null);
                   }}
-                  className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400/50"
+                  className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-blue-500"
                 >
                   Ya, Sudah
                 </button>

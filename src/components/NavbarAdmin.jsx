@@ -208,8 +208,8 @@ export default function NavbarAdmin({
           </svg>
         }
         items={[
-          { label: "Lab 609", to: "/admin/lab609" },
-          { label: "Lab 610", to: "/admin/lab610" },
+          { label: "Lab 609", to: "/admin/lab/609" },
+          { label: "Lab 610", to: "/admin/lab/610" },
         ]}
         bgColor="bg-blue-600 hover:bg-blue-700"
       />

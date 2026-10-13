@@ -1,7 +1,7 @@
-// src/components/TablePage.jsx (1 tabel, responsif mobile + filter teks & tanggal)
-import React, { useMemo, useState } from "react";
+// Tabel generik: 1 tabel, responsif mobile + filter teks & tanggal
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Table } from "../../../components/DefaultTable";
+import { Table } from "./DataTable";
 
 /** Utility untuk bikin kolom Status dengan styling konsisten */
 // eslint-disable-next-line react-refresh/only-export-components

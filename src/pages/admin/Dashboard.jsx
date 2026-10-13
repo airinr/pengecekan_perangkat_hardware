@@ -2,6 +2,7 @@
 /* eslint-disable no-undef */
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
+import jadwalImg from "@/assets/images/jadwal.png";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 const NGROK_HEADERS = { "ngrok-skip-browser-warning": "true" };
@@ -132,6 +133,20 @@ export default function DashboardAdmin() {
               Tambah atau hapus item pada master daftar barang.
             </div>
           </Link>
+        </div>
+
+        {/* Jadwal */}
+        <div className="mt-10 w-full max-w-4xl">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-3 text-center">
+            Jadwal
+          </h2>
+          <div className="flex justify-center">
+            <img
+              src={jadwalImg}
+              alt="Jadwal"
+              className="w-full max-w-3xl rounded-2xl border border-white/10 object-contain"
+            />
+          </div>
         </div>
       </div>
     </div>

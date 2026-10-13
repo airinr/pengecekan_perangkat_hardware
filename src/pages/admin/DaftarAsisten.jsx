@@ -7,7 +7,7 @@ import React, {
   useRef,
 } from "react";
 import { useNavigate } from "react-router-dom";
-import { Table } from "../../components/DefaultTable";
+import { Table } from "@/components/ui/DataTable";
 
 export default function DaftarAsisten() {
   const navigate = useNavigate();

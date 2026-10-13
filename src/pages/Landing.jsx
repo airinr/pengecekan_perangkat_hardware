@@ -1,21 +1,9 @@
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import logo from "../assets/images/logo_unikom.png";
 import gear_logo from "../assets/images/logo_landing.png";
 
 export default function Landing() {
-  const navigate = useNavigate();
-
-  const isLoggedIn = !!localStorage.getItem("token");
-  const goFeatures = (e) => {
-    e.preventDefault();
-    if (isLoggedIn) {
-      navigate("/features");
-    } else {
-      navigate("/login");
-    }
-  };
-
   return (
 
     <div className="h-screen w-screen bg-gradient-to-b from-blue-800 via-blue-600 to-indigo-700 text-white relative overflow-hidden flex flex-col font-sans">
