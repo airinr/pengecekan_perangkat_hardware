@@ -13,13 +13,11 @@ export function Table({ columns, data }) {
         </thead>
         <tbody className="[&_tr:hover]:bg-white/5">
           {data.map((row, i) => (
-            <tr key={i} className="border-t border-white/10 odd:bg-white/5">
+            <tr key={row.id ?? row.idHistory ?? i} className="border-t border-white/10 odd:bg-white/5">
               {columns.map((c) => (
                 <td
                   key={c.key}
-                  className={`px-4 py-3 ${
-                    c.align === "right" ? "text-right" : ""
-                  }`}
+                  className={`px-4 py-3 ${c.align === "right" ? "text-right" : ""}`}
                 >
                   {c.render ? c.render(row[c.key], row) : row[c.key]}
                 </td>

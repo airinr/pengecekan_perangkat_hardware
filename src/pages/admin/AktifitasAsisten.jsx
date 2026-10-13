@@ -1,7 +1,7 @@
 // pages/AktivitasAsisten.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Table } from "../../components/DefaultTable";
+import { Table } from "@/components/ui/DataTable";
 
 // --- Data dummy ---
 const seed = [

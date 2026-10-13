@@ -146,8 +146,8 @@ export default function NavbarAsisten({
           </svg>
         }
         items={[
-          { label: "Lab 609", to: "/perangkatlab?lab=609" },
-          { label: "Lab 610", to: "/perangkatlab?lab=610" },
+          { label: "Lab 609", to: "/perangkat/609" },
+          { label: "Lab 610", to: "/perangkat/610" },
         ]}
       />
 
@@ -167,8 +167,8 @@ export default function NavbarAsisten({
           </svg>
         }
         items={[
-          { label: "Lab 609", to: "/lab609" },
-          { label: "Lab 610", to: "/lab610" },
+          { label: "Lab 609", to: "/lab/609" },
+          { label: "Lab 610", to: "/lab/610" },
         ]}
       />
 

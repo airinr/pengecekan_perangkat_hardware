@@ -10,7 +10,7 @@ import React, {
   useState,
 } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Table } from "../../components/DefaultTable";
+import { Table } from "@/components/ui/DataTable";
 
 export default function DaftarKelas() {
   const navigate = useNavigate();

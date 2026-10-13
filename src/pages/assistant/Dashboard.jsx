@@ -1,4 +1,5 @@
 import React from "react";
+import jadwalImg from "@/assets/images/jadwal.png";
 
 export default function DashboardAsisten() {
   return (
@@ -57,6 +58,20 @@ export default function DashboardAsisten() {
               desc="Kelas praktikum: Merakit Komputer, BIOS & Partisi, Jaringan Komputer, Troubleshooting"
               tone="secondary"
               badge="Hardware"
+            />
+          </div>
+        </section>
+
+        {/* JADWAL */}
+        <section className="mt-8">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-3 text-center">
+            Jadwal
+          </h2>
+          <div className="flex justify-center">
+            <img
+              src={jadwalImg}
+              alt="Jadwal"
+              className="w-full max-w-3xl rounded-2xl border border-white/10 object-contain"
             />
           </div>
         </section>
