@@ -9,6 +9,7 @@ import React, {
   useState,
 } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { showConfirmDialog, showErrorAlert, Toast } from "@/lib/swal";
 
 export default function DaftarDosen() {
   const navigate = useNavigate();
@@ -697,14 +698,21 @@ export default function DaftarDosen() {
         setSuccess("Data dosen berhasil ditambahkan.");
       }
 
+      Toast.fire({
+        icon: "success",
+        title: isEditing
+          ? "Data dosen berhasil diperbarui"
+          : "Data dosen berhasil ditambahkan",
+      });
       closeModal();
       fetchDosen();
     } catch (e2) {
       console.error(e2);
-      setError(
+      const msg =
         e2?.message ||
-          (isEditing ? "Gagal memperbarui dosen." : "Gagal menambahkan dosen."),
-      );
+        (isEditing ? "Gagal memperbarui dosen." : "Gagal menambahkan dosen.");
+      setError(msg);
+      showErrorAlert("Gagal Menyimpan", msg);
     } finally {
       setSubmitting(false);
     }
@@ -763,6 +771,7 @@ export default function DaftarDosen() {
       }
 
       setClassSuccess("Kelas dosen berhasil ditambahkan.");
+      Toast.fire({ icon: "success", title: "Kelas dosen berhasil ditambahkan" });
       setClassForm({
         idKelas: "",
         tahunAjar: CURRENT_YEAR,
@@ -773,7 +782,9 @@ export default function DaftarDosen() {
       fetchTakenKelasAll(CURRENT_YEAR, "Ganjil");
     } catch (e2) {
       console.error(e2);
-      setClassError(e2?.message || "Gagal menambahkan kelas.");
+      const msg = e2?.message || "Gagal menambahkan kelas.";
+      setClassError(msg);
+      showErrorAlert("Gagal Menambah Kelas", msg);
     } finally {
       setClassSubmitting(false);
     }
@@ -781,7 +792,11 @@ export default function DaftarDosen() {
 
   const handleDelete = async (row) => {
     if (!row?.id) return;
-    const ok = window.confirm(`Hapus dosen "${row.nama}"?`);
+    const ok = await showConfirmDialog({
+      title: "Hapus Dosen?",
+      text: `Apakah Anda yakin ingin menghapus dosen "${row.nama}"?`,
+      confirmButtonText: "Ya, Hapus",
+    });
     if (!ok) return;
 
     setDeletingId(row.id);
@@ -808,9 +823,12 @@ export default function DaftarDosen() {
 
       setRows((prev) => prev.filter((r) => r.id !== row.id));
       setSuccess(`Dosen "${row.nama}" berhasil dihapus.`);
+      Toast.fire({ icon: "success", title: `Dosen "${row.nama}" berhasil dihapus` });
     } catch (e) {
       console.error(e);
-      setError(e?.message || "Gagal menghapus dosen.");
+      const msg = e?.message || "Gagal menghapus dosen.";
+      setError(msg);
+      showErrorAlert("Gagal Menghapus", msg);
     } finally {
       setDeletingId(null);
     }
@@ -864,9 +882,9 @@ export default function DaftarDosen() {
   };
 
   return (
-    <div className="lg:ml-56 ">
+    <div className="lg:ml-56">
       {/* Header */}
-      <div className="px-4 pt-6 pb-3">
+      <div className="px-4 pt-16 sm:pt-6 pb-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-white">Data Dosen</h1>

@@ -1,5 +1,3 @@
-/* eslint-disable no-unused-vars */
-/* eslint-disable no-undef */
 import React, {
   useCallback,
   useEffect,
@@ -7,6 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { Toast, showErrorAlert, showConfirmDialog } from "@/lib/swal";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 const NGROK_HEADERS = { "ngrok-skip-browser-warning": "true" };
@@ -35,19 +34,10 @@ export default function MasterBarang() {
   // ===== Delete state =====
   const [deletingId, setDeletingId] = useState(null);
 
-  // ===== Toast sukses =====
-  const [successMsg, setSuccessMsg] = useState("");
-  const successTimerRef = useRef(null);
+  // ===== Toast sukses via SweetAlert2 =====
   const showSuccess = (msg = "Berhasil") => {
-    setSuccessMsg(msg);
-    if (successTimerRef.current) clearTimeout(successTimerRef.current);
-    successTimerRef.current = setTimeout(() => setSuccessMsg(""), 2200);
+    Toast.fire({ icon: "success", title: msg });
   };
-  useEffect(
-    () => () =>
-      successTimerRef.current && clearTimeout(successTimerRef.current),
-    []
-  );
 
   // ===== Normalizer payload API =====
   const normalizeBarang = (b) => {
@@ -165,7 +155,11 @@ export default function MasterBarang() {
 
   const deleteBarang = async (row) => {
     if (!row?.idBarang || deletingId) return;
-    const ok = window.confirm(`Hapus barang "${row.namaBarang}"?`);
+    const ok = await showConfirmDialog({
+      title: "Hapus Barang?",
+      text: `Apakah Anda yakin ingin menghapus barang "${row.namaBarang}"?`,
+      confirmButtonText: "Ya, Hapus",
+    });
     if (!ok) return;
     try {
       setDeletingId(row.idBarang);
@@ -192,7 +186,7 @@ export default function MasterBarang() {
       showSuccess("Berhasil menghapus");
     } catch (e) {
       console.error(e);
-      alert(e?.message || "Gagal menghapus barang.");
+      showErrorAlert("Gagal Menghapus", e?.message || "Gagal menghapus barang.");
     } finally {
       setDeletingId(null);
     }
@@ -289,14 +283,7 @@ export default function MasterBarang() {
         <div className="absolute inset-0 bg-[radial-gradient(60%_60%_at_50%_10%,rgba(59,130,246,0.10),transparent)]" />
       </div>
 
-      <div className="container mx-auto px-4 py-8 lg:ml-56">
-        {/* Toast */}
-        {Boolean(successMsg) && (
-          <div className="fixed right-4 top-4 z-[9999] rounded-xl border border-emerald-400/30 bg-emerald-500/20 px-4 py-2 text-sm text-emerald-200 shadow-lg backdrop-blur">
-            {successMsg}
-          </div>
-        )}
-
+      <div className="container mx-auto px-4 py-6 sm:py-8 lg:ml-56 pt-16 sm:pt-6">
         {/* Header */}
         <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>

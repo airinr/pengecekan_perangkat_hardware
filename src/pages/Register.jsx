@@ -1,7 +1,7 @@
-/* eslint-disable no-empty */
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/images/logo_unikom.ico";
+import { showErrorAlert, showSuccessAlert, showWarningAlert } from "@/lib/swal";
 
 export default function Register() {
   const [nim, setNim] = useState("");
@@ -11,18 +11,6 @@ export default function Register() {
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  // === popup sukses ===
-  const [showSuccess, setShowSuccess] = useState(false);
-
-  // === NEW: popup error validasi ===
-  const [showErrorPopup, setShowErrorPopup] = useState(false);
-  const [errorPopupMsg, setErrorPopupMsg] = useState("");
-
-  const openErrorPopup = (msg) => {
-    setErrorPopupMsg(msg);
-    setShowErrorPopup(true);
-  };
 
   // Validasi helper
   const isValidMahasiswaEmail = (value) =>
@@ -48,35 +36,36 @@ export default function Register() {
     // 1) NIM harus tepat 8 digit, numerik sudah dijaga di onChange
     if (nim.length !== 8) {
       setLoading(false);
-      openErrorPopup("NIM harus tepat 8 digit.");
+      showWarningAlert("Validasi Gagal", "NIM harus tepat 8 digit.");
       return;
     }
 
     // 2) Email harus domain mahasiswa
     if (!isValidMahasiswaEmail(email)) {
       setLoading(false);
-      openErrorPopup("Gunakan email mahasiswa (@mahasiswa.unikom.ac.id).");
+      showWarningAlert("Validasi Gagal", "Gunakan email mahasiswa (@mahasiswa.unikom.ac.id).");
       return;
     }
 
     // 3) Password harus ada 1 huruf besar & 1 angka
     if (!isValidPassword(password)) {
       setLoading(false);
-      openErrorPopup(
+      showWarningAlert(
+        "Validasi Gagal",
         "Password wajib mengandung minimal 1 huruf besar dan 1 angka."
       );
       return;
     }
 
-    //4) Nama 30 har
+    // 4) Nama
     if (nama.trim().length === 0) {
       setLoading(false);
-      openErrorPopup("Nama wajib diisi.");
+      showWarningAlert("Validasi Gagal", "Nama wajib diisi.");
       return;
     }
     if (nama.length > 30) {
       setLoading(false);
-      openErrorPopup("Nama tidak boleh lebih dari 30 karakter.");
+      showWarningAlert("Validasi Gagal", "Nama tidak boleh lebih dari 30 karakter.");
       return;
     }
 
@@ -93,26 +82,30 @@ export default function Register() {
         try {
           const j = await res.json();
           if (j?.message) msg = j.message;
-        } catch {}
+        } catch (err) {
+          void err;
+        }
         throw new Error(msg);
       }
 
-      // === Tampilkan popup sukses ===
-      setShowSuccess(true);
-
-      // Optional: bersihkan form
       setNim("");
       setEmail("");
       setNama("");
       setPassword("");
-    } catch (err) {
-      setError(
-        err?.message?.toLowerCase().includes("nim")
-          ? "Register gagal: NIM tidak valid atau sudah terdaftar."
-          : err?.message?.toLowerCase().includes("email")
-          ? "Register gagal: Email tidak valid atau sudah terdaftar."
-          : "Register gagal. Silakan periksa data Anda dan coba lagi."
+
+      await showSuccessAlert(
+        "Registrasi Berhasil",
+        "Akun Anda berhasil didaftarkan. Mohon tunggu akun Anda diaktifkan oleh admin."
       );
+      navigate("/login", { replace: true });
+    } catch (err) {
+      const errText = err?.message?.toLowerCase().includes("nim")
+        ? "Register gagal: NIM tidak valid atau sudah terdaftar."
+        : err?.message?.toLowerCase().includes("email")
+        ? "Register gagal: Email tidak valid atau sudah terdaftar."
+        : "Register gagal. Silakan periksa data Anda dan coba lagi.";
+      setError(errText);
+      showErrorAlert("Registrasi Gagal", errText);
       console.log(err);
     } finally {
       setLoading(false);
@@ -164,7 +157,7 @@ export default function Register() {
 
                   // max 8 digit (kalau lebih -> popup)
                   if (onlyDigits.length > 8) {
-                    openErrorPopup("Tidak boleh lebih dari 8 digit.");
+                    showWarningAlert("Validasi Gagal", "NIM tidak boleh lebih dari 8 digit.");
                     return;
                   }
 
@@ -197,7 +190,7 @@ export default function Register() {
                   const val = e.target.value;
 
                   if (val.length > 30) {
-                    openErrorPopup("Nama tidak boleh lebih dari 30 karakter.");
+                    showWarningAlert("Validasi Gagal", "Nama tidak boleh lebih dari 30 karakter.");
                     return;
                   }
 
@@ -229,7 +222,8 @@ export default function Register() {
                 onChange={(e) => setEmail(e.target.value)}
                 onBlur={() => {
                   if (email && !isValidMahasiswaEmail(email)) {
-                    openErrorPopup(
+                    showWarningAlert(
+                      "Validasi Gagal",
                       "Gunakan email mahasiswa (@mahasiswa.unikom.ac.id)."
                     );
                   }
@@ -363,101 +357,6 @@ export default function Register() {
           AP2SC UNIKOM
         </p>
       </main>
-
-      {/* === POPUP ERROR VALIDASI === */}
-      {showErrorPopup && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="register-error-title"
-        >
-          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white p-6 shadow-2xl">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-red-100 text-red-700 grid place-items-center">
-                <svg
-                  viewBox="0 0 24 24"
-                  className="h-6 w-6"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M12 9v4" />
-                  <path d="M12 17h.01" />
-                  <path d="M10.3 3.9h3.4L22 20H2L10.3 3.9z" />
-                </svg>
-              </div>
-              <h3
-                id="register-error-title"
-                className="text-lg font-semibold text-gray-900"
-              >
-                Validasi Gagal
-              </h3>
-            </div>
-
-            <p className="mt-3 text-sm text-gray-700">{errorPopupMsg}</p>
-
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowErrorPopup(false)}
-                className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* === POPUP SUKSES REGISTER === */}
-      {showSuccess && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="register-success-title"
-        >
-          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white p-6 shadow-2xl">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-green-100 text-green-700 grid place-items-center">
-                <svg
-                  viewBox="0 0 24 24"
-                  className="h-6 w-6"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M20 6L9 17l-5-5" />
-                </svg>
-              </div>
-              <h3
-                id="register-success-title"
-                className="text-lg font-semibold text-gray-900"
-              >
-                Registrasi Berhasil
-              </h3>
-            </div>
-
-            <p className="mt-3 text-sm text-gray-700">
-              Sudah register, mohon tunggu akun anda diaktifkan oleh admin.
-            </p>
-
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowSuccess(false);
-                  navigate("/login", { replace: true });
-                }}
-                className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

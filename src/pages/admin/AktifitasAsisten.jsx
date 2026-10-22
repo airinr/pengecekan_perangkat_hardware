@@ -155,7 +155,7 @@ export default function AktifitasAsisten() {
   }, [rowsRaw, q]);
 
   return (
-    <div className="p-4 lg:ml-56 space-y-4">
+    <div className="p-4 pt-16 sm:pt-6 lg:ml-56 space-y-4">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-xl font-semibold text-white">
           Aktivitas Asisten — {nim}

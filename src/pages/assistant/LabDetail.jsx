@@ -19,12 +19,12 @@ export default function LabDetail() {
   }));
 
   return (
-    <div className="mx-auto px-4 py-8 lg:ml-56 mt-16 sm:mt-6">
+    <div className="mx-auto px-4 py-6 sm:py-8 lg:ml-56 pt-16 sm:pt-6">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-2xl font-bold mb-2">
+        <h1 className="text-xl sm:text-2xl font-bold mb-2">
           Perangkat Laboratorium {lab.short}
         </h1>
-        <p className="text-sm text-slate-300 mb-6">
+        <p className="text-xs sm:text-sm text-slate-300 mb-6">
           Kode Lab: <span className="font-semibold">{lab.name}</span> (
           {labCode}). Pilih salah satu kategori di bawah untuk melanjutkan
           pengisian laporan.
@@ -39,7 +39,7 @@ export default function LabDetail() {
               key={item.slug}
               type="button"
               onClick={() => go(item.slug)}
-              className="group relative w-full rounded-xl border border-white/10 bg-slate-900/60 p-4 text-left text-white shadow-md transition hover:bg-slate-800/70 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 h-full"
+              className="group relative w-full rounded-2xl border border-white/10 bg-slate-900/70 p-5 text-left text-white shadow-md transition hover:bg-slate-800/80 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 h-full"
               aria-label={`Buka ${item.title}`}
             >
               <div className="flex items-start gap-3">

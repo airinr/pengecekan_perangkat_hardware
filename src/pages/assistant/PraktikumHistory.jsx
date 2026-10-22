@@ -98,7 +98,7 @@ function PraktikumHistoryView({
   }));
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 mt-16 sm:mt-6 pb-4">
+    <div className="px-3 sm:px-6 lg:px-8 pt-16 sm:pt-6 pb-6">
       <CategorySelect labShort={labShort} />
       <ExportCsvPanel
         title={`Export CSV histori praktikum (${praktikumName} — ${labName})`}

@@ -191,7 +191,7 @@ function PerangkatLabView({ LAB_CODE, labId, labName, onChangeLab }) {
   );
 
   return (
-    <div className="container mx-auto px-4 py-8 lg:ml-56 mt-16 sm:mt-6">
+    <div className="container mx-auto px-4 py-6 sm:py-8 lg:ml-56 pt-16 sm:pt-6">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Perangkat Laboratorium {labName}</h1>
@@ -236,48 +236,61 @@ function PerangkatLabView({ LAB_CODE, labId, labName, onChangeLab }) {
         </div>
       )}
 
-      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-          <div className="text-xs text-slate-400">Total Perangkat</div>
-          <div className="text-2xl font-semibold">{totals.total}</div>
+      <div className="mb-6 grid grid-cols-3 gap-2 sm:gap-4">
+        <div className="rounded-2xl border border-white/10 bg-slate-900/80 p-3 sm:p-4 backdrop-blur shadow-sm">
+          <div className="text-[11px] sm:text-xs text-slate-400">Total Jenis</div>
+          <div className="text-lg sm:text-2xl font-bold text-white mt-0.5">{totals.total}</div>
         </div>
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-          <div className="text-xs text-slate-400">Normal</div>
-          <div className="text-2xl font-semibold text-green-300">{totals.normal}</div>
+        <div className="rounded-2xl border border-white/10 bg-slate-900/80 p-3 sm:p-4 backdrop-blur shadow-sm">
+          <div className="text-[11px] sm:text-xs text-slate-400">Normal</div>
+          <div className="text-lg sm:text-2xl font-bold text-emerald-400 mt-0.5">{totals.normal}</div>
         </div>
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-          <div className="text-xs text-slate-400">Rusak/Hilang</div>
-          <div className="text-2xl font-semibold text-yellow-300">{totals.rusak}</div>
+        <div className="rounded-2xl border border-white/10 bg-slate-900/80 p-3 sm:p-4 backdrop-blur shadow-sm">
+          <div className="text-[11px] sm:text-xs text-slate-400">Rusak/Hilang</div>
+          <div className="text-lg sm:text-2xl font-bold text-rose-400 mt-0.5">{totals.rusak}</div>
         </div>
       </div>
 
-      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <input
-          type="text"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Cari nama perangkat…"
-          className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-600 sm:w-80"
-        />
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-slate-400">Sort by:</label>
+      <div className="mb-4 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full sm:w-80">
+          <input
+            type="text"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Cari nama perangkat…"
+            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 pl-9 text-xs sm:text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <svg
+            className="w-4 h-4 text-slate-400 absolute left-3 top-2.5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+
+        <div className="flex items-center justify-between sm:justify-end gap-2 text-xs">
+          <label className="text-slate-400">Urutkan:</label>
           <select
             value={sortKey}
             onChange={(e) => setSortKey(e.target.value)}
-            className="rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-sm text-slate-200"
+            className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-xs sm:text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="no">Index (#)</option>
-            <option value="nama">Nama</option>
+            <option value="nama">Nama Perangkat</option>
             <option value="jumlahNormal">Jumlah Normal</option>
             <option value="jumlahRusak">Jumlah Rusak</option>
             <option value="jumlah">Total</option>
             <option value="status">Status</option>
           </select>
           <button
+            type="button"
             onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
-            className="rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-sm text-slate-200"
+            className="rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 px-3 py-2 text-xs sm:text-sm font-semibold text-slate-200 transition"
+            title="Arah Urutan"
           >
-            {sortDir === "asc" ? "↑" : "↓"}
+            {sortDir === "asc" ? "↑ A-Z" : "↓ Z-A"}
           </button>
         </div>
       </div>

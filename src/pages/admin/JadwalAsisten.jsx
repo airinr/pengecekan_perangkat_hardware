@@ -176,7 +176,7 @@ export default function JadwalAsisten() {
   }, [q, users, roleFilter]);
 
   return (
-    <div className="p-4 lg:ml-56 space-y-4">
+    <div className="p-4 pt-16 sm:pt-6 lg:ml-56 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-white">Jadwal Asisten</h1>
         <div className="flex items-center gap-2">

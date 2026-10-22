@@ -1,39 +1,41 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import jadwalImg from "@/assets/images/jadwal.png";
+import { labPath, perangkatPath } from "@/features/praktikum/constants";
 
 export default function DashboardAsisten() {
   return (
-    <div className="relative min-h-[100dvh] w-full overflow-x-hidden mt-16 sm:mt-6">
+    <div className="relative min-h-[100dvh] w-full overflow-x-hidden pt-16 sm:pt-6">
       {/* === FULL BLACK BACKGROUND === */}
       <div className="fixed inset-0 -z-50 bg-black" />
 
-      {/* Page container (tetap pakai lg:ml-56) */}
-      <div className="w-full max-w-6xl mx-auto px-4 py-8 lg:ml-56 text-slate-100">
+      {/* Page container */}
+      <div className="w-full max-w-6xl mx-auto px-4 py-6 sm:py-8 lg:ml-56 text-slate-100">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-3xl font-extrabold tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
             Dashboard Asisten
           </h1>
-          <p className="mt-1 text-slate-400">
+          <p className="mt-1 text-sm sm:text-base text-slate-400">
             Selamat datang 👋 — Pilih laboratorium untuk melakukan pelaporan
           </p>
         </div>
 
         {/* PERANGKAT LABORATORIUM */}
         <section className="mt-2">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-3">
+          <h2 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-slate-400 mb-3">
             PERANGKAT LABORATORIUM
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             <CardPerangkat
               lab="LAB-609"
-              href="/perangkatlab?lab=609"
+              to={perangkatPath("609")}
               subtitle="Hardware & Praktikum"
               tone="blue"
             />
             <CardPerangkat
               lab="LAB-610"
-              href="/perangkatlab?lab=610"
+              to={perangkatPath("610")}
               subtitle="Hardware & Praktikum"
               tone="cyan"
             />
@@ -42,18 +44,18 @@ export default function DashboardAsisten() {
 
         {/* PELAPORAN */}
         <section className="mt-8">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-3">
+          <h2 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-slate-400 mb-3">
             PELAPORAN PERANGKAT LABORATORIUM
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             <QuickAction
-              href="/lab609"
+              to={labPath("609")}
               title="LAB-609"
               desc="Kelas praktikum: Merakit Komputer, BIOS & Partisi, Jaringan Komputer, Troubleshooting"
               badge="Hardware"
             />
             <QuickAction
-              href="/lab610"
+              to={labPath("610")}
               title="LAB-610"
               desc="Kelas praktikum: Merakit Komputer, BIOS & Partisi, Jaringan Komputer, Troubleshooting"
               tone="secondary"
@@ -82,7 +84,7 @@ export default function DashboardAsisten() {
 
 /* ---------------- Components ---------------- */
 
-function QuickAction({ href, title, desc, tone = "primary", badge }) {
+function QuickAction({ to, title, desc, tone = "primary", badge }) {
   const tones = {
     primary:
       "bg-gradient-to-br from-blue-600 to-indigo-600 text-white hover:shadow-lg",
@@ -93,8 +95,8 @@ function QuickAction({ href, title, desc, tone = "primary", badge }) {
   };
 
   return (
-    <a
-      href={href}
+    <Link
+      to={to}
       role="button"
       className={`group w-full rounded-2xl p-5 transition transform hover:-translate-y-0.5 ${tones[tone]}`}
     >
@@ -128,12 +130,12 @@ function QuickAction({ href, title, desc, tone = "primary", badge }) {
           />
         </svg>
       </div>
-    </a>
+    </Link>
   );
 }
 
 /* CardPerangkat tanpa jumlah, kontras di hitam */
-function CardPerangkat({ lab, href, subtitle, tone = "blue" }) {
+function CardPerangkat({ lab, to, subtitle, tone = "blue" }) {
   const toneGrad =
     tone === "cyan"
       ? "from-cyan-500 to-sky-500"
@@ -142,8 +144,8 @@ function CardPerangkat({ lab, href, subtitle, tone = "blue" }) {
       : "from-blue-600 to-indigo-600";
 
   return (
-    <a
-      href={href}
+    <Link
+      to={to}
       role="button"
       className="group block w-full rounded-2xl border border-white/10 bg-slate-900/70 backdrop-blur shadow-sm hover:shadow-md transition overflow-hidden"
     >
@@ -175,6 +177,6 @@ function CardPerangkat({ lab, href, subtitle, tone = "blue" }) {
           </span>
         </div>
       </div>
-    </a>
+    </Link>
   );
 }

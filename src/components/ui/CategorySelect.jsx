@@ -10,10 +10,10 @@ export default function CategorySelect({ labShort, label }) {
   };
 
   return (
-    <div className="py-6 lg:ml-56 lg:pl-5">
+    <div className="py-2 sm:py-4 lg:ml-56 lg:pl-5">
       <label
         htmlFor="topik"
-        className="mb-2 block text-sm font-medium text-slate-200"
+        className="mb-1.5 block text-xs sm:text-sm font-medium text-slate-200"
       >
         {label ?? "Pilih kategori untuk melakukan laporan"}
       </label>
@@ -21,7 +21,7 @@ export default function CategorySelect({ labShort, label }) {
         id="topik"
         defaultValue=""
         onChange={(e) => handleChange(e.target.value)}
-        className="mb-6 block w-full appearance-none rounded-lg border border-white/15 bg-slate-900/60 px-3 py-2 pr-9 text-sm text-slate-100"
+        className="mb-3 block w-full appearance-none rounded-xl border border-white/15 bg-slate-900/80 px-3 py-2 pr-9 text-xs sm:text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
       >
         <option value="" disabled>
           Pilih kategori

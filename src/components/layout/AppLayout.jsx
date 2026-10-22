@@ -2,6 +2,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import { useRole } from "@/contexts/RoleContext";
 import NavbarAsisten from "@/components/NavbarAsisten";
 import NavbarAdmin from "@/components/NavbarAdmin";
+import FloatingPwaInstall from "@/components/common/FloatingPwaInstall";
 
 const HIDE_PREFIX = ["/login", "/register", "/forgot-password"];
 const HIDE_EXACT = ["/"];
@@ -20,9 +21,10 @@ export default function AppLayout() {
     <>
       {!hideNavbar && showNavbarAsisten && <NavbarAsisten />}
       {!hideNavbar && showNavbarAdmin && <NavbarAdmin />}
-      <div>
+      <div className="w-full">
         <Outlet />
       </div>
+      <FloatingPwaInstall />
     </>
   );
 }
