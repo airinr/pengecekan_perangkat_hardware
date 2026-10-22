@@ -126,11 +126,11 @@ export default function Profile() {
   const initial = String(displayName).charAt(0).toUpperCase();
 
   return (
-    <div className="w-screen min-h-screen bg-black text-slate-100 lg:ml-52">
+    <div className="w-full min-h-screen bg-black text-slate-100 lg:ml-56 pt-16 sm:pt-6">
       <div className="fixed inset-0 -z-10 bg-black" />
       <div className="fixed inset-0 -z-10 bg-gradient-to-r from-blue-600/30 via-indigo-600/20 to-cyan-500/10" />
 
-      <section className="w-screen px-4 sm:px-6 lg:px-8 py-6">
+      <section className="w-full max-w-4xl px-4 sm:px-6 lg:px-8 py-6">
         <div className="w-full rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-xl p-6 md:p-8 shadow-xl">
           {loading && (
             <div className="mb-4 text-sm text-slate-300">Memuat profil…</div>

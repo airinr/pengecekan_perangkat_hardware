@@ -10,6 +10,7 @@ import React, {
 import { useNavigate } from "react-router-dom";
 import { Table } from "@/components/ui/DataTable";
 import { praktikumPath } from "@/features/praktikum/constants";
+import { showErrorAlert, showWarningAlert, Toast } from "@/lib/swal";
 
 const STATUS_COMPLETE = "Lengkap";
 const STATUS_INCOMPLETE = "Tidak Lengkap";
@@ -304,7 +305,7 @@ export default function AdminLab609() {
   const onSubmitAdd = async (e) => {
     e.preventDefault();
     const idBarang = String(form.idBarang || "").trim();
-    if (!idBarang) return alert("Silakan pilih Barang terlebih dahulu.");
+    if (!idBarang) return showWarningAlert("Pilih Barang", "Silakan pilih Barang terlebih dahulu.");
 
     const token = localStorage.getItem("token");
     try {
@@ -328,23 +329,24 @@ export default function AdminLab609() {
       setShowModal(false);
       resetForm();
       setMode("add");
+      Toast.fire({ icon: "success", title: "Barang berhasil ditambahkan" });
     } catch (err) {
       console.error(err);
-      alert(err?.message || "Gagal menambah data (POST).");
+      showErrorAlert("Gagal Menambah", err?.message || "Gagal menambah data.");
     }
   };
 
   const onSubmitEdit = async (e) => {
     e.preventDefault();
     if (!form.idBarang)
-      return alert("idBarang kosong. Data tidak valid untuk update.");
+      return showWarningAlert("Data Tidak Valid", "idBarang kosong. Data tidak valid untuk update.");
 
     const jn = Number(form.jumlahNormal);
     const jr = Number(form.jumlahRusak);
     if (!Number.isFinite(jn) || jn < 0)
-      return alert("Jumlah Normal tidak valid.");
+      return showWarningAlert("Input Tidak Valid", "Jumlah Normal tidak valid.");
     if (!Number.isFinite(jr) || jr < 0)
-      return alert("Jumlah Rusak tidak valid.");
+      return showWarningAlert("Input Tidak Valid", "Jumlah Rusak tidak valid.");
 
     const token = localStorage.getItem("token");
     try {
@@ -382,9 +384,10 @@ export default function AdminLab609() {
       resetForm();
       setEditingId(null);
       setMode("add");
+      Toast.fire({ icon: "success", title: "Data lab berhasil diperbarui" });
     } catch (err) {
       console.error(err);
-      alert(err?.message || "Gagal mengubah data (PUT).");
+      showErrorAlert("Gagal Mengubah", err?.message || "Gagal mengubah data.");
     }
   };
 
@@ -427,9 +430,10 @@ export default function AdminLab609() {
         const t = await res.text().catch(() => "");
         throw new Error(t || "Gagal menyimpan tindak lanjut.");
       }
+      Toast.fire({ icon: "success", title: "Status perbaikan berhasil disimpan" });
     } catch (e) {
       console.error(e);
-      alert(e?.message || "Gagal menyimpan tindak lanjut.");
+      showErrorAlert("Gagal Menyimpan", e?.message || "Gagal menyimpan tindak lanjut.");
     }
   };
 
@@ -513,7 +517,7 @@ export default function AdminLab609() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 lg:ml-56 mt-16 sm:mt-6">
+    <div className="container mx-auto px-4 py-6 sm:py-8 lg:ml-56 pt-16 sm:pt-6">
       {/* ===== Pilih kategori untuk laporan ===== */}
       <label
         htmlFor="topik"

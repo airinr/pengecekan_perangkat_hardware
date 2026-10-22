@@ -11,6 +11,7 @@ import React, {
 } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Table } from "@/components/ui/DataTable";
+import { showConfirmDialog, showErrorAlert, Toast } from "@/lib/swal";
 
 export default function DaftarKelas() {
   const navigate = useNavigate();
@@ -352,14 +353,21 @@ export default function DaftarKelas() {
           ? "Data kelas berhasil diperbarui."
           : "Data kelas berhasil ditambahkan."
       );
+      Toast.fire({
+        icon: "success",
+        title: isEditing
+          ? "Data kelas berhasil diperbarui"
+          : "Data kelas berhasil ditambahkan",
+      });
       closeModal();
       fetchKelas();
     } catch (e2) {
       console.error(e2);
-      setError(
+      const msg =
         e2?.message ||
-          "Gagal menyimpan data. Cek apakah endpoint menerima JSON dan membalas JSON."
-      );
+        "Gagal menyimpan data. Cek apakah endpoint menerima JSON dan membalas JSON.";
+      setError(msg);
+      showErrorAlert("Gagal Menyimpan", msg);
     } finally {
       setSubmitting(false);
     }
@@ -368,7 +376,11 @@ export default function DaftarKelas() {
   // === DELETE ===
   const handleDelete = async (row) => {
     if (!row?.id) return;
-    const ok = window.confirm(`Hapus kelas "${row.nama}"?`);
+    const ok = await showConfirmDialog({
+      title: "Hapus Kelas?",
+      text: `Apakah Anda yakin ingin menghapus kelas "${row.nama}"?`,
+      confirmButtonText: "Ya, Hapus",
+    });
     if (!ok) return;
 
     setDeletingId(row.id);
@@ -388,12 +400,14 @@ export default function DaftarKelas() {
       await safeJson(res);
       setRows((prev) => prev.filter((r) => r.id !== row.id));
       setSuccess(`Kelas "${row.nama}" berhasil dihapus.`);
+      Toast.fire({ icon: "success", title: `Kelas "${row.nama}" berhasil dihapus` });
     } catch (e) {
       console.error(e);
-      setError(
+      const msg =
         e?.message ||
-          "Gagal menghapus kelas. Pastikan endpoint DELETE benar dan membalas JSON."
-      );
+        "Gagal menghapus kelas. Pastikan endpoint DELETE benar dan membalas JSON.";
+      setError(msg);
+      showErrorAlert("Gagal Menghapus", msg);
     } finally {
       setDeletingId(null);
     }
@@ -516,9 +530,9 @@ export default function DaftarKelas() {
 
   // ========================== UI ==========================
   return (
-    <div className="lg:ml-56 lg:w-[calc(100vw-14rem)] w-full mt-16 sm:mt-6">
+    <div className="lg:ml-56 lg:w-[calc(100vw-14rem)] w-full pt-16 sm:pt-6">
       {/* Header */}
-      <div className="pl-4 pr-2 lg:pr-0 pt-6 pb-3 flex flex-wrap items-start justify-between gap-3">
+      <div className="pl-4 pr-2 lg:pr-0 pt-2 pb-3 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-white">Data Kelas</h1>
           <p className="text-slate-400 text-sm">Kelola daftar kelas.</p>

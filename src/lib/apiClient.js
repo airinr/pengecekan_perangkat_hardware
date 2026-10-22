@@ -49,6 +49,33 @@ export async function apiPut(path, body) {
   return res.json().catch(() => ({}));
 }
 
+export async function apiPost(path, body, { signal } = {}) {
+  const token = localStorage.getItem("token");
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...NGROK_HEADERS,
+    },
+    body: JSON.stringify(body),
+    signal,
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+  return res.json().catch(() => ({}));
+}
+
+export async function apiDelete(path, { signal } = {}) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+    signal,
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+  return res.json().catch(() => ({}));
+}
+
 export async function apiUpload(path, formData) {
   const token = localStorage.getItem("token");
   const res = await fetch(`${API_BASE}${path}`, {

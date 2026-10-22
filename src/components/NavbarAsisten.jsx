@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useRole } from "../contexts/RoleContext";
+import { showConfirmDialog } from "@/lib/swal";
 
 export default function NavbarAsisten({
   logoSrc = "/assets/images/logo_unikom.ico",
@@ -12,6 +13,22 @@ export default function NavbarAsisten({
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { setRole } = useRole();
+
+  const handleLogout = useCallback(async () => {
+    const ok = await showConfirmDialog({
+      title: "Konfirmasi Logout",
+      text: "Apakah Anda yakin ingin keluar dari akun asisten?",
+      confirmButtonText: "Ya, Logout",
+      cancelButtonText: "Batal",
+    });
+    if (!ok) return;
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    localStorage.removeItem("user");
+    setRole(null);
+    navigate("/login");
+  }, [navigate, setRole]);
 
   useEffect(() => {
     closeMenu();
@@ -25,11 +42,11 @@ export default function NavbarAsisten({
     return () => window.removeEventListener("keydown", onKey);
   }, [closeMenu]);
 
-  // 🔵 Paksa warna biru untuk link (termasuk visited)
+  // 🔵 NavLink yang ramah sentuhan (min-h 44px) & jelas di Mobile
   const navLinkBase =
-    "flex items-center gap-2 px-2 py-1 rounded-md text-sm font-medium text-blue-100 visited:text-blue-100 hover:text-white hover:bg-blue-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 transition";
+    "flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-blue-100 visited:text-blue-100 hover:text-white hover:bg-blue-600/30 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 transition min-h-[44px]";
   const navLinkActive =
-    "bg-blue-500/25 text-white shadow-inner shadow-blue-300/10";
+    "bg-blue-600/40 text-white font-semibold shadow-inner shadow-blue-300/20 ring-1 ring-blue-400/30";
 
   const Chevron = ({ open }) => (
     <svg
@@ -199,83 +216,93 @@ export default function NavbarAsisten({
   return (
     <>
       {/* Mobile topbar */}
-      <nav className="fixed top-0 left-0 z-50 w-full md:hidden backdrop-blur bg-blue-700/90 shadow-lg">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-12 items-center justify-between">
-            <Link to="/dashboard_asisten" className="flex items-center gap-3">
+      <nav className="fixed top-0 left-0 z-50 w-full md:hidden backdrop-blur-md bg-blue-800/95 border-b border-white/10 shadow-lg">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="flex h-14 items-center justify-between">
+            <Link to="/dashboard_asisten" className="flex items-center gap-2.5 active:scale-95 transition">
               <img
                 src={logoSrc}
                 alt="Logo"
-                className="h-6 w-6 rounded-md object-contain ring-1 ring-blue-200/30"
+                className="h-8 w-8 rounded-lg object-contain bg-white/10 p-0.5 ring-1 ring-white/20"
                 onError={(e) => {
                   e.currentTarget.style.display = "none";
                 }}
               />
-              <span className="text-white text-base font-bold drop-shadow-sm">
-                {appName}
-              </span>
+              <div className="flex flex-col">
+                <span className="text-white text-base font-bold leading-tight drop-shadow-sm">
+                  {appName}
+                </span>
+                <span className="text-[10px] text-blue-200/80 leading-none">
+                  Hardware Management
+                </span>
+              </div>
             </Link>
+
             <button
               onClick={toggleMenu}
-              className="inline-flex items-center justify-center rounded-md p-2 text-white hover:bg-blue-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+              className="inline-flex items-center justify-center w-11 h-11 rounded-xl text-white bg-white/10 hover:bg-white/20 active:scale-90 transition border border-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
               aria-label="Toggle menu"
               aria-expanded={isOpen}
               aria-controls="mobile-menu"
             >
               {isOpen ? (
-                <svg
-                  className="h-6 w-6"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
+                <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               ) : (
-                <svg
-                  className="h-6 w-6"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
+                <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               )}
             </button>
           </div>
         </div>
 
+        {/* Mobile Dropdown Menu Panel */}
         <div
           id="mobile-menu"
-          className={`md:hidden transition-[max-height] duration-300 ease-out overflow-hidden ${
-            isOpen ? "max-h-[420px]" : "max-h-0"
+          className={`md:hidden transition-all duration-300 ease-out overflow-hidden ${
+            isOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"
           }`}
           aria-hidden={!isOpen}
         >
-          <div className="bg-blue-800/95 px-3 pb-3 pt-2 sm:px-4 shadow-inner">
+          <div className="bg-blue-950/95 backdrop-blur-xl px-4 pb-4 pt-3 border-t border-white/10 shadow-2xl space-y-2">
             <MenuItems />
+
+            {/* Logout Button Khusus Mobile */}
+            <div className="pt-2 border-t border-white/10">
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-rose-200 bg-rose-500/15 hover:bg-rose-500/25 active:scale-[0.98] transition min-h-[44px]"
+              >
+                <svg className="h-5 w-5 text-rose-300" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M16 17v-3H9v-4h7V7l5 5-5 5M14 2a2 2 0 0 1 2 2v2h3a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-3v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9z" />
+                </svg>
+                <span>Keluar (Logout)</span>
+              </button>
+            </div>
           </div>
         </div>
       </nav>
 
+      {/* Backdrop Overlay saat menu mobile aktif */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 top-14 bg-black/60 backdrop-blur-sm z-40 md:hidden animate-fade-in"
+          onClick={closeMenu}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Sidebar desktop */}
       <aside className="hidden md:flex fixed left-0 top-0 z-40 h-screen w-56 flex-col bg-gradient-to-b from-blue-800 to-blue-700 text-white shadow-2xl">
-        <div className="flex h-12 items-center gap-3 border-b border-blue-400/20 px-5">
+        <div className="flex h-14 items-center gap-3 border-b border-blue-400/20 px-5">
           <Link to="/dashboard_asisten" className="flex items-center gap-3">
             <img
               src={logoSrc}
               alt="Logo"
-              className="h-7 w-7 rounded-lg object-contain ring-1 ring-blue-200/30"
+              className="h-8 w-8 rounded-lg object-contain ring-1 ring-blue-200/30"
               onError={(e) => {
                 e.currentTarget.style.display = "none";
               }}
@@ -287,20 +314,14 @@ export default function NavbarAsisten({
         </div>
 
         {/* 🔵 Container menu mewariskan biru */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1 text-blue-100">
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5 text-blue-100">
           <MenuItems />
         </nav>
 
         {/* Logout button */}
         <div className="border-t border-blue-400/20 px-3 py-2">
           <button
-            onClick={() => {
-              localStorage.removeItem("token");
-              localStorage.removeItem("role");
-              localStorage.removeItem("user");
-              setRole(null);
-              navigate("/login");
-            }}
+            onClick={handleLogout}
             className={`${navLinkBase} w-full justify-start bg-blue-800 hover:bg-blue-700`}
           >
             <svg
